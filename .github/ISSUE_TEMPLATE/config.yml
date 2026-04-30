@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Hayulo roadmap
+    url: https://github.com/techtaka-yongjip/hayulo/blob/main/ROADMAP.md
+    about: Check the roadmap before proposing new queue work.

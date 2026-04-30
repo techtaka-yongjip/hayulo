@@ -1,6 +1,6 @@
 # Hayulo Documentation Index
 
-This directory contains the founding documents for Hayulo. Together they describe the project's philosophy, ambitions, technical plan, product strategy, governance, and safety direction.
+This directory contains the public planning documents for Hayulo. Together they describe the project's philosophy, ambitions, technical plan, product strategy, governance, and safety direction.
 
 ## Start here
 
@@ -14,6 +14,7 @@ This directory contains the founding documents for Hayulo. Together they describ
 
 - [Product Strategy](product_strategy.md): audience, wedge, positioning, demos, and adoption path.
 - [Detailed Roadmap](detailed_roadmap.md): milestone-by-milestone plan.
+- [Issue Queue](issue_queue.md): GitHub issue queue rules, labels, and issue shape.
 - [Adoption and Ecosystem](adoption_and_ecosystem.md): how the ecosystem can grow.
 - [Launch Plan](launch_plan.md): practical open-source launch steps.
 - [Public Pitch](public_pitch.md): messaging, taglines, and launch copy.

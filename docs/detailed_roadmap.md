@@ -1,255 +1,204 @@
 # Detailed Roadmap
 
-This roadmap expands the shorter `ROADMAP.md` file. It is a planning document, not a guarantee.
+This document expands `ROADMAP.md`. GitHub Issues are the source of truth for execution order; this document explains the milestone intent and acceptance boundaries.
 
-## Version 0.1: Seed prototype
+## Version 0.1: Seed Prototype
 
-Status: implemented in the initial repository.
+Status: implemented.
 
-Goals:
+Completed:
 
-- lexer
-- parser
-- AST
-- interpreter
-- CLI
-- single-file run command
-- single-file test command
-- basic JSON diagnostics
-- examples
-- repository docs
+- lexer, parser, AST, and interpreter for the script prototype
+- CLI commands: `run`, `test`, `check`, and `build`
+- JSON diagnostics for script and API checks
+- REST API MVP parser and generator
+- generated OpenAPI JSON, Node server, and smoke test
+- examples and CI coverage
 
 Success criteria:
 
 - `hayulo run examples/hello.hayulo` works
 - `hayulo test examples/hello.hayulo` works
 - `hayulo check examples/hello.hayulo --json` works
-- contributors can understand the codebase
+- `hayulo check examples/todo_api/main.hayulo --json` works
+- `hayulo build examples/todo_api/main.hayulo --out /tmp/hayulo-generated --json` works
 
-## Version 0.2: Useful scripting core
+## Version 0.2: Stabilization
 
-Goals:
+Goal: make the current prototype reliable enough for regular coding-agent iteration.
 
-- list literals
-- map literals
-- indexing
-- `for` loops
-- `match`
-- comments and doc comments
-- better string escapes
-- basic records
+Work:
 
-Tooling:
-
-- `hayulo --version`
-- improved parser diagnostics
-- diagnostic snapshot tests
-- more examples
-
-Standard library:
-
-- text helpers
-- list helpers
-- file read/write
-- CLI args
-- JSON parse/stringify
-
-Example apps:
-
-- word counter
-- JSON formatter
-- file organizer
-
-## Version 0.3: Types and diagnostics
-
-Goals:
-
-- name resolution
-- type inference for locals
-- explicit public function types
-- function call checks
-- return type checks
-- field checks for records
-- Option and Result basics
-- `?` operator
-
-Diagnostics:
-
-- stable diagnostic code namespace
-- JSON diagnostic schema v0.1
-- safe suggestions
-- source spans
-- related symbols
+- add `hayulo --version`
+- return structured diagnostics instead of uncaught Python tracebacks for normal file, parse, runtime, and API build errors
+- make JSON diagnostics consistent enough for snapshot tests
+- add diagnostic snapshot fixtures
+- expose parsed `intent` metadata in `hayulo check --json`
 
 Success criteria:
 
-- common LLM-generated mistakes produce useful errors
-- type errors can be repaired from JSON diagnostics
+- common invalid inputs produce stable JSON diagnostics
+- supported examples still pass
+- contributors can use diagnostics without parsing terminal prose
 
-## Version 0.4: Projects
+## Version 0.3: Core Language
 
-Goals:
+Goal: grow the general language beyond toy script examples.
 
-- `hayulo.toml`
-- `src/` and `tests/` conventions
-- imports
-- modules across files
-- project-wide test discovery
-- project-wide check command
-- lockfile design draft
+Work:
 
-Commands:
+- add list literals, map literals, and indexing
+- add `for` loops
+- add basic records in the core language
+- add focused examples and tests for every supported feature
+- update `SPEC.md` with each public syntax addition
 
-```bash
-hayulo new <name>
-hayulo init
-hayulo test
-hayulo check
-```
+Success criteria:
+
+- a user can write small data-processing scripts without API-specific syntax
+- unsupported syntax is rejected with useful diagnostics
+- all examples are covered by tests
+
+## Version 0.4: Static Checking
+
+Goal: catch common generated-code mistakes before runtime.
+
+Work:
+
+- add name resolution
+- add function arity checks before runtime
+- add basic local type inference
+- add return type checks
+- add record field checks
+- introduce stable diagnostic code namespace
+
+Success criteria:
+
+- common agent-generated mistakes produce useful errors
+- type and name errors can be repaired from JSON diagnostics
+- diagnostic codes are documented before becoming public contract
+
+## Version 0.5: Project System
+
+Goal: support real projects while keeping single-file mode working.
+
+Work:
+
+- add `hayulo.toml`
+- add `hayulo new`
+- add `src/` and `tests/` conventions
+- add project-wide `hayulo check`
+- add project-wide `hayulo test`
+- keep single-file `run`, `test`, `check`, and `build` behavior compatible
 
 Success criteria:
 
 - a user can create a project and run all tests
 - examples can be organized as real projects
+- generated output conventions are documented
 
-## Version 0.5: Formatter and repair protocol
+## Version 0.6: Formatter and Repair Protocol
 
-Goals:
+Goal: make generated code and repair loops repeatable.
 
-- `hayulo format`
-- `hayulo format --check`
-- repair-hint diagnostics
-- codebase summary JSON
-- failing test JSON schema
-- first repair protocol draft
+Work:
 
-Commands:
-
-```bash
-hayulo summarize --json
-hayulo check --json --repair-hints
-```
+- add `hayulo format`
+- add `hayulo format --check`
+- define stable JSON diagnostic schema v0.1
+- add failing-test JSON schema
+- add `hayulo summarize --json`
+- create repair benchmark fixtures
 
 Success criteria:
 
-- LLMs can repair a benchmark set using structured diagnostics
 - generated patches produce stable formatted code
+- repair agents can consume diagnostics and failing-test output without scraping prose
+- benchmark fixtures protect diagnostic stability
 
-## Version 0.6: App-building preview
+## Version 0.7: App-Building Preview
 
-Goals:
+Goal: prove Hayulo can build useful small software, with REST APIs as the flagship integration.
 
-- HTTP server preview
-- routing preview
-- SQLite preview
-- validation
-- configuration
-- logging
+Work:
 
-Examples:
-
-- todo API
-- notes app
-- small dashboard concept
-- local invoice tracker concept
+- continue REST API MVP as the main app-building proof
+- add `hayulo new api`
+- add `hayulo serve`, or document the generated-server workflow if `serve` is deferred
+- improve generated OpenAPI and smoke tests
+- add TypeScript generation, or explicitly defer it with a documented reason
 
 Success criteria:
 
-- one complete small app works end to end
-- tests cover the app
-- app can be generated from a prompt with LLM help
+- one complete API works end to end
+- tests cover generated API behavior
+- coding agents can modify the API source, run checks, and repair failures
 
-## Version 0.7: Effects and permissions preview
+## Version 0.8: Effects and Permissions Preview
 
-Goals:
+Goal: make risky generated behavior visible.
 
-- effect annotations
-- project permission declarations
-- missing permission diagnostics
-- deny list enforcement
-- approval gate design draft
+Work:
 
-Example:
-
-```hayulo
-fn send_email(...) -> Result<SendReceipt, EmailError>
-  effects [email.send, network.write]
-{
-  ...
-}
-```
+- add syntax and design notes for effects
+- add `hayulo.toml` permission declarations
+- add missing-permission diagnostics
+- add deny-list enforcement for generated API actions
 
 Success criteria:
 
-- compiler can explain why a permission is needed
 - generated code cannot silently introduce denied effects
+- diagnostics explain why permissions are needed
+- permission changes are visible in review
 
-## Version 0.8: Package system preview
+## Version 0.9: Public Alpha
 
-Goals:
+Goal: make the project usable by outside testers.
 
-- local packages
-- dependency declaration
-- lockfile
-- package metadata
-- package docs
-- package effect summaries
+Work:
 
-Commands:
-
-```bash
-hayulo add <package>
-hayulo package check
-```
-
-Success criteria:
-
-- examples can share reusable packages
-- dependency effects are visible
-
-## Version 0.9: Public alpha
-
-Requirements:
-
-- stable syntax subset
-- clear migration notes
-- language server preview
-- playground or hosted demo
-- documentation site
-- CI integration
-- benchmark results
-- security warning docs
+- add documentation site or publishable docs structure
+- add editor syntax support plan or minimal grammar file
+- add CI examples
+- publish repair benchmark results
+- freeze candidate syntax subset
 
 Success criteria:
 
 - outside users can try Hayulo without maintainer help
 - feedback can be gathered from real use
+- experimental limits are clear
 
-## Version 1.0: Stable core
+## Version 1.0: Stable Core
 
-Requirements:
+Goal: stabilize the language and toolchain contract.
 
-- stable grammar for core language
-- stable diagnostic schema
-- stable project format
-- stable formatter
-- stable test runner
-- static checker for core types
-- documented standard library core
-- backwards compatibility policy
-- migration tooling for breaking changes
+Work:
 
-1.0 does not need every future feature. It does need a trustworthy core.
+- freeze core grammar
+- freeze project format
+- freeze formatter behavior
+- freeze diagnostic schema
+- document standard library core
+- add backwards compatibility policy
+- add migration policy for breaking changes
 
-## Priority rules
+Success criteria:
+
+- 1.0 users can depend on stable core behavior
+- breaking changes have a documented migration path
+- the standard library, diagnostics, and formatter are documented as public contracts
+
+## Priority Rules
 
 When choosing work, prioritize:
 
-1. features needed by examples
-2. diagnostics that improve repair loops
-3. tests that prevent regressions
-4. documentation that helps contributors
-5. architecture that enables the next milestone
+1. queue order in GitHub Issues
+2. features needed by examples
+3. diagnostics that improve repair loops
+4. tests that prevent regressions
+5. documentation that helps contributors
+6. architecture that enables the next milestone
 
 Avoid:
 

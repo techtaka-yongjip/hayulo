@@ -2,128 +2,11 @@
 
 This roadmap is a planning document, not a guarantee. Hayulo is pre-alpha and will change as the project learns.
 
-## 0.1 Seed Prototype
+## 1.0 Direction
 
-Status: implemented.
+Hayulo 1.0 targets a small but stable general-purpose language and toolchain for coding-agent-assisted software creation.
 
-Goals:
-
-- tiny runnable language
-- lexer, parser, AST, interpreter
-- CLI with `run`, `test`, and `check`
-- JSON diagnostics
-- examples and tests
-- founding documentation
-
-## 0.2 Useful Scripting Core
-
-Goals:
-
-- list literals
-- map literals
-- indexing
-- comments and doc comments
-- `for` loops
-- `match`
-- better strings
-- basic records
-- `hayulo --version`
-- stronger parser recovery
-
-Example target:
-
-```hayulo
-fn main() {
-  names = ["Ada", "Grace", "Linus"]
-
-  for name in names {
-    print(name)
-  }
-}
-```
-
-## 0.3 Static Checking Preview
-
-Goals:
-
-- name resolution
-- local type inference
-- function call arity checks
-- return type checks
-- record field checks
-- `Option<T>` basics
-- `Result<T, E>` basics
-- `?` operator
-- stable diagnostic code namespace
-
-## 0.4 Project System
-
-Goals:
-
-- `hayulo.toml`
-- `hayulo new`
-- multi-file modules
-- `src/` and `tests/` conventions
-- project-wide `hayulo check`
-- project-wide `hayulo test`
-
-## 0.5 Formatter and Repair Protocol
-
-Goals:
-
-- `hayulo format`
-- JSON diagnostics v0.1
-- repair hints
-- failing test JSON schema
-- codebase summary command
-- first AI repair protocol draft
-
-## 0.6 App-Building Preview
-
-Goals:
-
-- files library
-- JSON library
-- CLI library
-- HTTP preview
-- SQLite preview
-- validation preview
-- one complete small app example
-
-## 0.7 Effects and Permissions Preview
-
-Goals:
-
-- effect annotations
-- permission declarations in `hayulo.toml`
-- missing permission diagnostics
-- deny list enforcement
-- approval gate design draft
-
-## 0.8 Package System Preview
-
-Goals:
-
-- local packages
-- dependency metadata
-- lockfile design
-- package docs
-- package effect summaries
-
-## 0.9 Public Alpha
-
-Goals:
-
-- stable enough syntax subset
-- documentation site
-- editor syntax support
-- playground or hosted demo
-- CI workflow examples
-- repair benchmark results
-
-## 1.0 Stable Core
-
-Goals:
+REST API generation remains the flagship integration example, but 1.0 is not only an API generator. The 1.0 target is:
 
 - stable core grammar
 - stable project format
@@ -131,31 +14,135 @@ Goals:
 - stable diagnostic schema
 - stable test runner
 - documented standard library core
-- backwards compatibility policy
-- migration story for breaking changes
+- package foundation
+- backwards compatibility and migration policy
 
-## Roadmap principle
+## Execution Model
+
+GitHub Issues are the execution queue.
+
+- There is one linear queue, ordered by `priority/N` labels.
+- Milestones group work, but priority labels decide execution order.
+- Only one issue should have the `active` label.
+- No issue closes without relevant tests and docs updates.
+- Every merged issue must pass `make test`, `make check`, and any relevant API smoke test.
+
+See [Issue Queue](docs/issue_queue.md) for labels, issue shape, and operating rules.
+
+## 0.1 Seed Prototype
+
+Status: implemented.
+
+Completed:
+
+- tiny runnable script language
+- lexer, parser, AST, interpreter
+- CLI with `run`, `test`, and `check`
+- JSON diagnostics
+- examples and tests
+- REST API MVP path with `hayulo build`
+- generated OpenAPI JSON and smoke tests
+- project documentation
+
+## 0.2 Stabilization
+
+Goal: make the current prototype reliable enough for regular agent iteration.
+
+- Add `hayulo --version`.
+- Remove uncaught Python tracebacks for normal CLI errors.
+- Improve JSON diagnostics consistency.
+- Add diagnostic snapshot tests.
+- Expose `intent` metadata in `hayulo check --json`.
+
+## 0.3 Core Language
+
+Goal: grow the script language beyond toy examples.
+
+- Add list literals, map literals, and indexing.
+- Add `for` loops.
+- Add basic records in the core language.
+- Add focused examples and tests for every supported language feature.
+
+## 0.4 Static Checking
+
+Goal: catch common generated-code mistakes before runtime.
+
+- Add name resolution.
+- Add function arity checks before runtime.
+- Add basic local type inference.
+- Add return type checks.
+- Add record field checks.
+- Introduce a stable diagnostic code namespace.
+
+## 0.5 Project System
+
+Goal: support real projects while preserving single-file mode.
+
+- Add `hayulo.toml`.
+- Add `hayulo new`.
+- Add `src/` and `tests/` conventions.
+- Add project-wide `hayulo check`.
+- Add project-wide `hayulo test`.
+
+## 0.6 Formatter and Repair Protocol
+
+Goal: make generated code and repair loops repeatable.
+
+- Add `hayulo format`.
+- Add `hayulo format --check`.
+- Define stable JSON diagnostic schema v0.1.
+- Add failing-test JSON schema.
+- Add `hayulo summarize --json`.
+- Create repair benchmark fixtures.
+
+## 0.7 App-Building Preview
+
+Goal: prove Hayulo can build useful small software, with REST APIs as the flagship example.
+
+- Continue the REST API MVP as the main app-building proof.
+- Add `hayulo new api`.
+- Add `hayulo serve`, or document the generated-server workflow if `serve` is deferred.
+- Improve generated OpenAPI and smoke tests.
+- Add TypeScript generation, or explicitly defer it with a documented reason.
+
+## 0.8 Effects and Permissions Preview
+
+Goal: make risky generated behavior visible.
+
+- Add syntax and design notes for effects.
+- Add `hayulo.toml` permission declarations.
+- Add missing-permission diagnostics.
+- Add deny-list enforcement for generated API actions.
+
+## 0.9 Public Alpha
+
+Goal: make the project usable by outside testers.
+
+- Add documentation site or publishable docs structure.
+- Add editor syntax support plan or minimal grammar file.
+- Add CI examples.
+- Publish repair benchmark results.
+- Freeze candidate syntax subset.
+
+## 1.0 Stable Core
+
+Goal: stabilize the language and toolchain contract.
+
+- Freeze core grammar.
+- Freeze project format.
+- Freeze formatter behavior.
+- Freeze diagnostic schema.
+- Document standard library core.
+- Add backwards compatibility policy.
+- Add migration policy for breaking changes.
+
+## Roadmap Principle
 
 Every release should make Hayulo better at one or more of these:
 
 - build useful programs
 - detect errors earlier
 - explain errors better
-- help LLMs repair code
+- help coding agents repair code
 - preserve human intent
 - make generated code safer
-
-## Immediate pivot: REST API MVP
-
-Hayulo's next milestone is a coding-agent-friendly REST API language. The project should prioritize:
-
-1. Stronger API parser diagnostics.
-2. `hayulo build` for API files.
-3. OpenAPI generation.
-4. Generated smoke tests.
-5. TypeScript generation.
-6. SQLite migrations.
-7. Auth primitives.
-8. `hayulo new api` scaffolding.
-
-The first success metric is simple: one `.hayulo` source file should become a working REST API that can pass generated tests.

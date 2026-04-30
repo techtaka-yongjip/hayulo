@@ -1,0 +1,56 @@
+name: Hayulo queue item
+description: Work item for the linear Hayulo 1.0 queue
+title: "[Queue] "
+labels:
+  - queue
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true when this issue is complete?
+      placeholder: "Example: Add hayulo --version and cover it with CLI tests."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included and excluded?
+      placeholder: "Included: CLI command and tests. Excluded: version command in project files."
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Concrete checks that prove this issue is done.
+      placeholder: "- `hayulo --version` prints the package version.\n- JSON diagnostics remain unchanged for existing commands."
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required tests
+      description: Unit, CLI, snapshot, generated API, or benchmark tests required.
+      placeholder: "- CLI test for the new command.\n- Existing test suite still passes."
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Required docs update
+      description: Documentation that must change with this issue.
+      placeholder: "- README command list.\n- SPEC.md if public syntax changes."
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands to run
+      description: Commands required before closing.
+      value: |
+        make test
+        make check
+    validations:
+      required: true

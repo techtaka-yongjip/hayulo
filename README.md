@@ -173,7 +173,7 @@ hayulo-lang/
   examples/hello.hayulo      script example
   examples/todo_api/         REST API example
   tests/                     Python tests for the prototype
-  docs/                      founding, design, and planning documents
+  docs/                      design and planning documents
   SPEC.md                    seed language specification
   ROADMAP.md                 high-level roadmap
   PROJECT_CHARTER.md         mission, values, and scope
