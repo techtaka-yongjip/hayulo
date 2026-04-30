@@ -289,6 +289,7 @@ Start here:
 - [Project Charter](PROJECT_CHARTER.md)
 - [Vision](docs/vision.md)
 - [Philosophy](docs/philosophy.md)
+- [Syntax Philosophy and Rulebook](docs/syntax_rulebook.md)
 - [Product Strategy](docs/product_strategy.md)
 - [Technical Plan](docs/technical_plan.md)
 - [REST API MVP](docs/rest_api_mvp.md)

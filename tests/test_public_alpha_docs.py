@@ -29,6 +29,7 @@ class PublicAlphaDocsTests(unittest.TestCase):
         for path in [
             "docs/public_alpha.md",
             "docs/syntax_subset.md",
+            "docs/syntax_rulebook.md",
             "docs/repair_benchmarks.md",
             "docs/ci.md",
             "docs/editor_support.md",
@@ -38,6 +39,7 @@ class PublicAlphaDocsTests(unittest.TestCase):
         for path in [
             "public_alpha.md",
             "syntax_subset.md",
+            "syntax_rulebook.md",
             "repair_benchmarks.md",
             "ci.md",
             "editor_support.md",
@@ -91,6 +93,26 @@ class PublicAlphaDocsTests(unittest.TestCase):
         self.assertIn("Out of Scope for 1.0", text)
         self.assertIn("TypeScript generation", text)
         self.assertIn("language-level effects enforcement", text)
+
+    def test_syntax_rulebook_is_canonical_and_strict(self):
+        text = (DOCS / "syntax_rulebook.md").read_text(encoding="utf-8")
+        for phrase in [
+            "canonical rulebook",
+            "one official shape",
+            "No Hidden Control Flow",
+            "No Implicit Dangerous Values",
+            "Diagnostics Are Part Of The Syntax",
+            "The Formatter Decides Style",
+            "Benchmark Before Preference",
+            "Feature Proposal Checklist",
+            "Rejection Checklist",
+        ]:
+            self.assertIn(phrase, text)
+
+        principles = (DOCS / "language_design_principles.md").read_text(encoding="utf-8")
+        duplicate_principles = (DOCS / "design_principles.md").read_text(encoding="utf-8")
+        self.assertIn("syntax_rulebook.md", principles)
+        self.assertIn("syntax_rulebook.md", duplicate_principles)
 
 
 if __name__ == "__main__":

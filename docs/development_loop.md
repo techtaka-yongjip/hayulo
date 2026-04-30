@@ -95,6 +95,10 @@ Use labels consistently:
 
 Do not add `active` unless the issue is the single current work item.
 
+## Syntax Change Rule
+
+Before implementing new syntax, check [Syntax Philosophy and Rulebook](syntax_rulebook.md). A syntax issue should include accepted examples, rejected examples, diagnostics, formatter behavior, tests, docs, and benchmark impact where possible.
+
 ## Maturity Signals
 
 The language is becoming more mature when:

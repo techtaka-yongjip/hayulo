@@ -2,6 +2,8 @@
 
 This document describes principles that should guide Hayulo's syntax, semantics, type system, and standard patterns.
 
+For post-1.0 syntax decisions, [Hayulo Syntax Philosophy and Rulebook](syntax_rulebook.md) is the stricter source of truth. This document explains design intent; the rulebook defines the acceptance and rejection rules for future syntax changes.
+
 ## Principle 1: Readability before cleverness
 
 Hayulo code should be easy to read aloud, explain, and review.
