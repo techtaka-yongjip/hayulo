@@ -1,0 +1,5 @@
+module old_assignment
+
+fn main() {
+  value = 1
+}

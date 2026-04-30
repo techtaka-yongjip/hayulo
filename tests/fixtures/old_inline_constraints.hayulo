@@ -1,0 +1,14 @@
+module old_inline_constraints
+
+app OldInlineConstraintsApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text min 1 max 200
+  }
+
+  route GET "/todos" -> List<Todo> {
+    effect api.read
+    effect storage.local
+    action list Todo
+  }
+}

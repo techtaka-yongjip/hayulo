@@ -25,7 +25,7 @@ make benchmark
 ```
 
 `make verify` includes `make benchmark`, so benchmark metadata and baselines are checked with the normal project gate.
-The benchmark gate validates task JSON, checks every Hayulo baseline, and confirms baseline formatting.
+The benchmark gate validates task JSON, checks every Hayulo baseline, confirms baseline formatting, builds every generated API baseline, and runs generated smoke tests when Node is available.
 
 ## What The Suite Measures
 

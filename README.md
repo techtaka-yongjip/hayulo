@@ -285,6 +285,7 @@ Start here:
 
 - [Public Alpha Guide](docs/public_alpha.md)
 - [2.0 Syntax Subset](docs/syntax_subset.md)
+- [2.0 Migration Guide](docs/migration_2_0.md)
 - [Syntax Rulebook](docs/syntax_rulebook.md)
 - [1.0 Stable Core Contract](docs/stable_contract_1_0.md)
 - [Compatibility Policy](docs/compatibility.md)

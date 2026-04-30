@@ -21,6 +21,7 @@ benchmark:
 	$(ENV) $(PYTHON) -m hayulo benchmark llm --json
 	$(ENV) $(PYTHON) -m hayulo check benchmarks/llm/baselines --json
 	$(ENV) $(PYTHON) -m hayulo format --check benchmarks/llm/baselines --json
+	$(ENV) $(PYTHON) -m unittest tests.test_llm_benchmarks.LlmBenchmarkGeneratedApiTests
 
 examples:
 	$(ENV) $(PYTHON) -m hayulo run examples/hello.hayulo

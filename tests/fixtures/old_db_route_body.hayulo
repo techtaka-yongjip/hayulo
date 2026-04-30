@@ -1,0 +1,12 @@
+module old_db_route_body
+
+app OldDbRouteBodyApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text { min: 1, max: 200 }
+  }
+
+  route GET "/todos" -> List<Todo> {
+    return db.Todo.all()
+  }
+}

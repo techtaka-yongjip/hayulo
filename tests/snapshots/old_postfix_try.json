@@ -1,0 +1,34 @@
+{
+  "diagnostics": [
+    {
+      "code": "syntax.postfix_try_removed",
+      "details": {},
+      "location": {
+        "column": 22,
+        "file": "tests/fixtures/old_postfix_try.hayulo",
+        "line": 8
+      },
+      "message": "Hayulo 2.0 uses prefix try instead of postfix ?.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Use `try expression` instead of `expression?`."
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": "syntax.postfix_try_removed",
+      "column": 22,
+      "file": "tests/fixtures/old_postfix_try.hayulo",
+      "line": 8,
+      "message": "Hayulo 2.0 uses prefix try instead of postfix ?.",
+      "suggestions": [
+        "Use `try expression` instead of `expression?`."
+      ]
+    }
+  ],
+  "schema": "hayulo.diagnostics@0.1",
+  "status": "failed"
+}

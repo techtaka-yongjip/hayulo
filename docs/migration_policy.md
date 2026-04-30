@@ -2,6 +2,8 @@
 
 Hayulo should make breaking changes deliberately and visibly. This policy applies after the 1.0 stable core.
 
+For the active 2.0 draft migration, see [migration_2_0.md](migration_2_0.md).
+
 ## Migration Requirements
 
 Every breaking change must include:

@@ -24,6 +24,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Release Checklist](release_checklist.md): commands and manual checks before tagging.
 - [Compatibility Policy](compatibility.md): how compatibility is documented across stable lines and draft releases.
 - [Migration Policy](migration_policy.md): how breaking changes are documented and shipped.
+- [2.0 Migration Guide](migration_2_0.md): concrete steps for moving 1.x-style source to the active 2.0 draft.
 - [Adoption and Ecosystem](adoption_and_ecosystem.md): how the ecosystem can grow.
 - [Launch Plan](launch_plan.md): practical open-source launch steps.
 - [Public Pitch](public_pitch.md): messaging, taglines, and launch copy.

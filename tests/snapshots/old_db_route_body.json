@@ -1,0 +1,33 @@
+{
+  "diagnostics": [
+    {
+      "code": "route.body_requires_action",
+      "details": {},
+      "location": {
+        "column": null,
+        "file": "tests/fixtures/old_db_route_body.hayulo",
+        "line": 10
+      },
+      "message": "Hayulo 2.0 API routes use declarative actions instead of db calls.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Use effect declarations and an action such as: action create Todo from input."
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": "route.body_requires_action",
+      "file": "tests/fixtures/old_db_route_body.hayulo",
+      "line": 10,
+      "message": "Hayulo 2.0 API routes use declarative actions instead of db calls.",
+      "suggestions": [
+        "Use effect declarations and an action such as: action create Todo from input."
+      ]
+    }
+  ],
+  "schema": "hayulo.diagnostics@0.1",
+  "status": "failed"
+}

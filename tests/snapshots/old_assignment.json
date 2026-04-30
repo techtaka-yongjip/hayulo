@@ -1,0 +1,34 @@
+{
+  "diagnostics": [
+    {
+      "code": "syntax.binding_requires_let_or_set",
+      "details": {},
+      "location": {
+        "column": 3,
+        "file": "tests/fixtures/old_assignment.hayulo",
+        "line": 4
+      },
+      "message": "Hayulo 2.0 uses explicit let/set binding syntax.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Use 'let name = value' for a new binding or 'set name = value' for reassignment."
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": "syntax.binding_requires_let_or_set",
+      "column": 3,
+      "file": "tests/fixtures/old_assignment.hayulo",
+      "line": 4,
+      "message": "Hayulo 2.0 uses explicit let/set binding syntax.",
+      "suggestions": [
+        "Use 'let name = value' for a new binding or 'set name = value' for reassignment."
+      ]
+    }
+  ],
+  "schema": "hayulo.diagnostics@0.1",
+  "status": "failed"
+}

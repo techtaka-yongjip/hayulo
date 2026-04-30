@@ -47,6 +47,22 @@ class CliSnapshotTests(unittest.TestCase):
         result = self.run_cli("build", "tests/fixtures/api_error.hayulo", "--json")
         self.assert_json_snapshot("api_build_error.json", result)
 
+    def test_old_assignment_migration_snapshot(self):
+        result = self.run_cli("check", "tests/fixtures/old_assignment.hayulo", "--json")
+        self.assert_json_snapshot("old_assignment.json", result)
+
+    def test_old_postfix_try_migration_snapshot(self):
+        result = self.run_cli("check", "tests/fixtures/old_postfix_try.hayulo", "--json")
+        self.assert_json_snapshot("old_postfix_try.json", result)
+
+    def test_old_inline_constraints_migration_snapshot(self):
+        result = self.run_cli("check", "tests/fixtures/old_inline_constraints.hayulo", "--json")
+        self.assert_json_snapshot("old_inline_constraints.json", result)
+
+    def test_old_db_route_body_migration_snapshot(self):
+        result = self.run_cli("check", "tests/fixtures/old_db_route_body.hayulo", "--json")
+        self.assert_json_snapshot("old_db_route_body.json", result)
+
 
 if __name__ == "__main__":
     unittest.main()

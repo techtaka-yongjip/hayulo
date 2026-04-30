@@ -1,0 +1,10 @@
+module old_postfix_try
+
+fn maybe() -> Option<Int> {
+  return Some(1)
+}
+
+fn main() {
+  let value = maybe()?
+  print(value)
+}

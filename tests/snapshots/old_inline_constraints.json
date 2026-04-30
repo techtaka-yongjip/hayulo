@@ -1,0 +1,33 @@
+{
+  "diagnostics": [
+    {
+      "code": "api.inline_constraints_removed",
+      "details": {},
+      "location": {
+        "column": null,
+        "file": "tests/fixtures/old_inline_constraints.hayulo",
+        "line": 6
+      },
+      "message": "Hayulo 2.0 uses structured field constraint blocks.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Use: title: Text { min: 1, max: 200 }."
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": "api.inline_constraints_removed",
+      "file": "tests/fixtures/old_inline_constraints.hayulo",
+      "line": 6,
+      "message": "Hayulo 2.0 uses structured field constraint blocks.",
+      "suggestions": [
+        "Use: title: Text { min: 1, max: 200 }."
+      ]
+    }
+  ],
+  "schema": "hayulo.diagnostics@0.1",
+  "status": "failed"
+}
