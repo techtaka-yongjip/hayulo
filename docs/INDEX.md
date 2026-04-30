@@ -26,6 +26,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Language Design Principles](language_design_principles.md): rules for future syntax and semantics.
 - [AI-Native Design](ai_native_design.md): what makes Hayulo AI-native.
 - [Compiler and Toolchain Plan](compiler_and_toolchain.md): CLI, diagnostics, formatter, test runner, and repair protocol.
+- [Project System](project_system.md): `hayulo.toml`, `src/`, `tests/`, and project-wide commands.
 - [Standard Library Plan](standard_library_plan.md): modules needed for useful apps.
 - [Diagnostics](diagnostics.md): current and future diagnostic direction.
 

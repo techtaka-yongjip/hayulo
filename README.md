@@ -23,6 +23,8 @@ Hayulo currently supports:
 - list literals, map literals, indexing, and `for` loops
 - basic record values with field access
 - static checking preview for names, arity, returns, and record fields
+- `hayulo.toml` projects with `src/` and `tests/` conventions
+- `hayulo new`, project-wide `hayulo check`, and project-wide `hayulo test`
 - JSON diagnostics from the CLI
 - API `app` blocks
 - API `type ... = record` declarations
@@ -127,6 +129,12 @@ python -m venv .venv
 . .venv/bin/activate
 pip install -e .
 hayulo --version
+hayulo new my-app
+cd my-app
+hayulo check
+hayulo test
+hayulo run src/main.hayulo
+cd ..
 hayulo run examples/hello.hayulo
 hayulo test examples/hello.hayulo
 hayulo run examples/data_core.hayulo
@@ -147,13 +155,30 @@ PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
 
 ```bash
 hayulo --version
+hayulo new <project-dir>
 hayulo run <file.hayulo>
 hayulo test <file.hayulo>
+hayulo test [project-dir]
 hayulo check <file.hayulo>
+hayulo check [project-dir]
 hayulo check <file.hayulo> --json
 hayulo build <api-file.hayulo>
 hayulo build <api-file.hayulo> --out generated --json
 ```
+
+## Project layout
+
+Hayulo projects use `hayulo.toml` at the project root:
+
+```toml
+[project]
+name = "my-app"
+version = "0.1.0"
+src = "src"
+tests = "tests"
+```
+
+`hayulo check` and `hayulo test` default to the current project when no file is provided. Single-file commands still work by passing a `.hayulo` path.
 
 ## Core data example
 
@@ -221,6 +246,7 @@ Start here:
 - [REST API MVP](docs/rest_api_mvp.md)
 - [AI-Native Design](docs/ai_native_design.md)
 - [Safety and Trust](docs/safety_and_trust.md)
+- [Project System](docs/project_system.md)
 - [Detailed Roadmap](docs/detailed_roadmap.md)
 - [Whitepaper](docs/whitepaper.md)
 - [Docs Index](docs/INDEX.md)

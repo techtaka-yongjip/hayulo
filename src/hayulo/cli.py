@@ -14,6 +14,7 @@ from .intent import parse_top_level_intent
 from .interpreter import Interpreter
 from .lexer import Lexer
 from .parser import Parser
+from .project import ProjectConfig, load_project, project_files, project_name_to_module
 
 
 def read_source(path: Path) -> str:
@@ -53,11 +54,12 @@ def read_source(path: Path) -> str:
         ) from exc
 
 
-def load_program(path: Path, source: str | None = None):
+def load_program(path: Path, source: str | None = None, filename: str | None = None):
     if source is None:
         source = read_source(path)
-    tokens = Lexer(source, filename=str(path)).lex()
-    return Parser(tokens, filename=str(path)).parse()
+    filename = filename or str(path)
+    tokens = Lexer(source, filename=filename).lex()
+    return Parser(tokens, filename=filename).parse()
 
 
 def emit_json(payload: dict[str, Any]) -> None:
@@ -65,54 +67,67 @@ def emit_json(payload: dict[str, Any]) -> None:
 
 
 def handle_error(error: HayuloError, json_mode: bool) -> int:
+    return handle_errors([error], json_mode)
+
+
+def handle_errors(errors: list[HayuloError], json_mode: bool) -> int:
     if json_mode:
-        emit_json({"status": "failed", "errors": [error.diagnostic.to_dict()]})
+        emit_json({"status": "failed", "errors": [error.diagnostic.to_dict() for error in errors]})
     else:
-        d = error.diagnostic
-        location = ""
-        if d.file:
-            location += d.file
-        if d.line is not None:
-            location += f":{d.line}"
-        if d.column is not None:
-            location += f":{d.column}"
-        prefix = f"{location}: " if location else ""
-        print(f"{prefix}{d.code}: {d.message}", file=sys.stderr)
-        for suggestion in d.suggestions:
-            print(f"  hint: {suggestion}", file=sys.stderr)
+        for error in errors:
+            d = error.diagnostic
+            location = ""
+            if d.file:
+                location += d.file
+            if d.line is not None:
+                location += f":{d.line}"
+            if d.column is not None:
+                location += f":{d.column}"
+            prefix = f"{location}: " if location else ""
+            print(f"{prefix}{d.code}: {d.message}", file=sys.stderr)
+            for suggestion in d.suggestions:
+                print(f"  hint: {suggestion}", file=sys.stderr)
     return 1
 
 
+def check_file_payload(path: Path, *, filename: str | None = None) -> dict[str, Any]:
+    filename = filename or str(path)
+    source = read_source(path)
+    intent = parse_top_level_intent(source, filename=filename)
+    if looks_like_api_source(source):
+        spec = parse_api_source(source, filename=filename)
+        return {
+            "status": "ok",
+            "kind": "api",
+            "file": filename,
+            "module": spec.module,
+            "intent": intent,
+            "app": spec.app_name,
+            "database": spec.database.to_dict() if spec.database else None,
+            "records": sorted(spec.records.keys()),
+            "routes": [route.to_dict() for route in spec.routes],
+        }
+
+    program = load_program(path, source, filename=filename)
+    check_program(program, filename=filename)
+    return {
+        "status": "ok",
+        "kind": "script",
+        "file": filename,
+        "module": program.module,
+        "intent": intent,
+        "functions": sorted(program.functions.keys()),
+        "tests": [test.name for test in program.tests],
+    }
+
+
 def cmd_check(args: argparse.Namespace) -> int:
-    path = Path(args.file)
+    path = Path(args.target) if args.target else Path(".")
+    if args.target is None or path.is_dir():
+        return cmd_check_project(path, args.json)
+
     try:
-        source = read_source(path)
-        intent = parse_top_level_intent(source, filename=str(path))
-        if looks_like_api_source(source):
-            spec = parse_api_source(source, filename=str(path))
-            payload = {
-                "status": "ok",
-                "kind": "api",
-                "file": str(path),
-                "module": spec.module,
-                "intent": intent,
-                "app": spec.app_name,
-                "database": spec.database.to_dict() if spec.database else None,
-                "records": sorted(spec.records.keys()),
-                "routes": [route.to_dict() for route in spec.routes],
-            }
-        else:
-            program = load_program(path, source)
-            check_program(program, filename=str(path))
-            payload = {
-                "status": "ok",
-                "kind": "script",
-                "file": str(path),
-                "module": program.module,
-                "intent": intent,
-                "functions": sorted(program.functions.keys()),
-                "tests": [test.name for test in program.tests],
-            }
+        payload = check_file_payload(path)
     except HayuloError as error:
         return handle_error(error, args.json)
 
@@ -127,6 +142,40 @@ def cmd_check(args: argparse.Namespace) -> int:
         else:
             print(f"functions: {', '.join(payload['functions']) or '(none)'}")
             print(f"tests: {len(payload['tests'])}")
+    return 0
+
+
+def cmd_check_project(target: Path, json_mode: bool) -> int:
+    try:
+        config = load_project(target)
+        checked: list[dict[str, Any]] = []
+        errors: list[HayuloError] = []
+        for path in project_files(config):
+            filename = project_relative(config, path)
+            try:
+                checked.append(check_file_payload(path, filename=filename))
+            except HayuloError as error:
+                errors.append(error)
+        if errors:
+            return handle_errors(errors, json_mode)
+    except HayuloError as error:
+        return handle_error(error, json_mode)
+
+    payload = {
+        "status": "ok",
+        "kind": "project",
+        "root": str(config.root),
+        "config": str(config.config_path),
+        "project": {"name": config.name, "version": config.version},
+        "checked": len(checked),
+        "files": checked,
+    }
+    if json_mode:
+        emit_json(payload)
+    else:
+        print(f"ok: {config.name} ({len(checked)} files)")
+        for item in checked:
+            print(f"  {item['file']}: {item['kind']}")
     return 0
 
 
@@ -148,7 +197,10 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 
 def cmd_test(args: argparse.Namespace) -> int:
-    path = Path(args.file)
+    path = Path(args.target) if args.target else Path(".")
+    if args.target is None or path.is_dir():
+        return cmd_test_project(path, args.json)
+
     try:
         program = load_program(path)
         interpreter = Interpreter(program, filename=str(path))
@@ -177,6 +229,69 @@ def cmd_test(args: argparse.Namespace) -> int:
             print(f"{marker} {result.name}")
             if result.error:
                 print(f"  {result.error}")
+        print(f"{passed} passed, {failed} failed")
+    return 0 if failed == 0 else 1
+
+
+def test_file_payload(path: Path, *, filename: str | None = None) -> dict[str, Any]:
+    filename = filename or str(path)
+    program = load_program(path, filename=filename)
+    check_program(program, filename=filename)
+    interpreter = Interpreter(program, filename=filename)
+    results = interpreter.run_tests()
+    passed = sum(1 for result in results if result.passed)
+    failed = len(results) - passed
+    return {
+        "status": "ok" if failed == 0 else "failed",
+        "file": filename,
+        "passed": passed,
+        "failed": failed,
+        "tests": [result.to_dict() for result in results],
+        "output": interpreter.output,
+    }
+
+
+def cmd_test_project(target: Path, json_mode: bool) -> int:
+    try:
+        config = load_project(target)
+        files: list[dict[str, Any]] = []
+        errors: list[HayuloError] = []
+        for path in project_files(config):
+            source = read_source(path)
+            if looks_like_api_source(source):
+                continue
+            filename = project_relative(config, path)
+            try:
+                files.append(test_file_payload(path, filename=filename))
+            except HayuloError as error:
+                errors.append(error)
+        if errors:
+            return handle_errors(errors, json_mode)
+    except HayuloError as error:
+        return handle_error(error, json_mode)
+
+    passed = sum(file["passed"] for file in files)
+    failed = sum(file["failed"] for file in files)
+    payload = {
+        "status": "ok" if failed == 0 else "failed",
+        "kind": "project-test",
+        "root": str(config.root),
+        "config": str(config.config_path),
+        "project": {"name": config.name, "version": config.version},
+        "passed": passed,
+        "failed": failed,
+        "files": files,
+    }
+    if json_mode:
+        emit_json(payload)
+    else:
+        for file in files:
+            print(f"{file['file']}: {file['passed']} passed, {file['failed']} failed")
+            for result in file["tests"]:
+                marker = "PASS" if result["passed"] else "FAIL"
+                print(f"  {marker} {result['name']}")
+                if result.get("error"):
+                    print(f"    {result['error']}")
         print(f"{passed} passed, {failed} failed")
     return 0 if failed == 0 else 1
 
@@ -213,13 +328,110 @@ def cmd_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_new(args: argparse.Namespace) -> int:
+    root = Path(args.path)
+    name = args.name or root.name
+    module = project_name_to_module(name)
+
+    try:
+        files = create_project(root, name=name, module=module)
+    except HayuloError as error:
+        return handle_error(error, args.json)
+
+    payload = {
+        "status": "ok",
+        "kind": "project-new",
+        "root": str(root),
+        "project": {"name": name, "version": "0.1.0"},
+        "files": [str(path) for path in files],
+        "next_commands": [f"cd {root}", "hayulo check", "hayulo test", "hayulo run src/main.hayulo"],
+    }
+    if args.json:
+        emit_json(payload)
+    else:
+        print(f"created Hayulo project: {root}")
+        for path in files:
+            print(f"  {path}")
+        print("next:")
+        print(f"  cd {root}")
+        print("  hayulo check")
+        print("  hayulo test")
+        print("  hayulo run src/main.hayulo")
+    return 0
+
+
+def create_project(root: Path, *, name: str, module: str) -> list[Path]:
+    if root.exists() and root.is_file():
+        raise HayuloError(Diagnostic(code="project.exists", message=f"Project path is a file: {root}.", file=str(root), suggestions=["Choose a directory path."]))
+    if root.exists() and any(root.iterdir()):
+        raise HayuloError(Diagnostic(code="project.exists", message=f"Project directory is not empty: {root}.", file=str(root), suggestions=["Choose an empty directory or a new project path."]))
+
+    root.mkdir(parents=True, exist_ok=True)
+    src = root / "src"
+    tests = root / "tests"
+    src.mkdir(exist_ok=True)
+    tests.mkdir(exist_ok=True)
+
+    files = [
+        root / "hayulo.toml",
+        src / "main.hayulo",
+        tests / "main_test.hayulo",
+    ]
+    files[0].write_text(project_config_text(name), encoding="utf-8")
+    files[1].write_text(project_main_text(module), encoding="utf-8")
+    files[2].write_text(project_test_text(module), encoding="utf-8")
+    return files
+
+
+def project_config_text(name: str) -> str:
+    return f"""[project]
+name = {json.dumps(name)}
+version = "0.1.0"
+src = "src"
+tests = "tests"
+"""
+
+
+def project_main_text(module: str) -> str:
+    return f"""module {module}.main
+
+intent {{
+  purpose: "A small Hayulo project."
+}}
+
+fn greet(name: Text) -> Text {{
+  return "Hello, " + name
+}}
+
+fn main() {{
+  print(greet("Hayulo"))
+}}
+"""
+
+
+def project_test_text(module: str) -> str:
+    return f"""module {module}.main_test
+
+test "project test runs" {{
+  expect 1 + 1 == 2
+}}
+"""
+
+
+def project_relative(config: ProjectConfig, path: Path) -> str:
+    try:
+        return path.relative_to(config.root).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hayulo", description="Hayulo prototype language toolchain")
     parser.add_argument("--version", action="version", version=f"hayulo {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    check = sub.add_parser("check", help="parse and validate a Hayulo file")
-    check.add_argument("file")
+    check = sub.add_parser("check", help="parse and validate a Hayulo file or project")
+    check.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
     check.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     check.set_defaults(func=cmd_check)
 
@@ -228,10 +440,16 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     run.set_defaults(func=cmd_run)
 
-    test = sub.add_parser("test", help="run tests in a Hayulo script file")
-    test.add_argument("file")
+    test = sub.add_parser("test", help="run tests in a Hayulo script file or project")
+    test.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
     test.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     test.set_defaults(func=cmd_test)
+
+    new = sub.add_parser("new", help="create a Hayulo project")
+    new.add_argument("path")
+    new.add_argument("--name", help="project name; defaults to the directory name")
+    new.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    new.set_defaults(func=cmd_new)
 
     build = sub.add_parser("build", help="build a Hayulo API file into a runnable REST API")
     build.add_argument("file")

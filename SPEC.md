@@ -40,6 +40,36 @@ fn main() {
 }
 ```
 
+## Projects
+
+A Hayulo project has a `hayulo.toml` file at the project root.
+
+```toml
+[project]
+name = "my-app"
+version = "0.1.0"
+src = "src"
+tests = "tests"
+```
+
+The current project config supports:
+
+- `name`: project name
+- `version`: project version
+- `src`: source directory path or list of paths
+- `tests`: test directory path or list of paths
+- `exclude`: optional list of files or directories to skip
+
+`hayulo new <project-dir>` creates:
+
+```text
+hayulo.toml
+src/main.hayulo
+tests/main_test.hayulo
+```
+
+`hayulo check` with no file checks the current project. `hayulo test` with no file runs project tests. Passing a `.hayulo` file keeps single-file behavior.
+
 ## Comments
 
 Line comments start with `//`.

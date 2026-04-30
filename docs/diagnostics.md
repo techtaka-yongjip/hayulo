@@ -134,6 +134,8 @@ type.unknown_type
 effect.permission_missing
 test.expectation_failed
 project.missing_config
+project.invalid_config
+project.exists
 package.version_conflict
 ```
 
