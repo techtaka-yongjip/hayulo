@@ -1,0 +1,65 @@
+module benchmark.inventory_api
+
+intent {
+  purpose: "Baseline for generating an inventory REST API with validation."
+  constraints: [
+    "Keep item identifiers and stock levels visible in the record model.",
+    "Validate text and numeric fields before data reaches storage."
+  ]
+}
+
+app InventoryBenchmarkApi {
+  database sqlite "inventory_benchmark.db"
+
+  openapi {
+    title: "Inventory Benchmark API"
+    version: "0.1.0"
+  }
+
+  type InventoryItem = record {
+    id: Id<InventoryItem>
+    sku: Text min 1 max 80 unique
+    name: Text min 1 max 200
+    quantity: Int min 0 max 100000
+    reorder_at: Int min 0 max 100000
+    created_at: Time = now()
+  }
+
+  route GET "/items" -> List<InventoryItem> {
+    return db.InventoryItem.all(order: created_at desc)
+  }
+
+  route GET "/items/{id}" -> InventoryItem {
+    return db.InventoryItem.get(id)?
+  }
+
+  route POST "/items" body input: CreateInventoryItem -> InventoryItem {
+    return db.InventoryItem.insert(InventoryItem {
+      sku: input.sku
+      name: input.name
+      quantity: input.quantity
+      reorder_at: input.reorder_at
+    })
+  }
+
+  route PATCH "/items/{id}" body input: UpdateInventoryItem -> InventoryItem {
+    item = db.InventoryItem.get(id)?
+    return db.InventoryItem.update(item with { quantity: input.quantity })
+  }
+
+  route DELETE "/items/{id}" -> Status {
+    db.InventoryItem.delete(id)?
+    return no_content
+  }
+}
+
+type CreateInventoryItem = record {
+  sku: Text min 1 max 80
+  name: Text min 1 max 200
+  quantity: Int min 0 max 100000
+  reorder_at: Int min 0 max 100000
+}
+
+type UpdateInventoryItem = record {
+  quantity: Int min 0 max 100000
+}

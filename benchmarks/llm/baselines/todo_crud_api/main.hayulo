@@ -1,0 +1,52 @@
+module benchmark.todo_crud_api
+
+intent {
+  purpose: "Baseline for generating a small Todo CRUD REST API."
+  constraints: [
+    "Keep route behavior explicit.",
+    "Require non-empty todo titles.",
+    "Expose generated OpenAPI and smoke-testable routes."
+  ]
+}
+
+app TodoBenchmarkApi {
+  database sqlite "todo_benchmark.db"
+
+  openapi {
+    title: "Todo Benchmark API"
+    version: "0.1.0"
+  }
+
+  type Todo = record {
+    id: Id<Todo>
+    title: Text min 1 max 200
+    done: Bool = false
+    created_at: Time = now()
+  }
+
+  route GET "/todos" -> List<Todo> {
+    return db.Todo.all(order: created_at desc)
+  }
+
+  route GET "/todos/{id}" -> Todo {
+    return db.Todo.get(id)?
+  }
+
+  route POST "/todos" body input: CreateTodo -> Todo {
+    return db.Todo.insert(Todo { title: input.title })
+  }
+
+  route PATCH "/todos/{id}/done" -> Todo {
+    todo = db.Todo.get(id)?
+    return db.Todo.update(todo with { done: true })
+  }
+
+  route DELETE "/todos/{id}" -> Status {
+    db.Todo.delete(id)?
+    return no_content
+  }
+}
+
+type CreateTodo = record {
+  title: Text min 1 max 200
+}

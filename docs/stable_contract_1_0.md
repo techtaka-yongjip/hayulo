@@ -25,9 +25,14 @@ Stable quality gates:
 ```bash
 make test
 make check
+make benchmark
 make verify
 make release-check
 ```
+
+## Post-1.0 Experimental CLI
+
+The 1.x line may add commands without breaking the 1.0 contract. `hayulo benchmark llm --json` is the first post-1.0 experimental command. It validates the local LLM benchmark catalog and Hayulo baseline examples, but its schema may evolve before being declared stable.
 
 ## Stable Language Subset
 

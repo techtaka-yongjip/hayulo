@@ -9,7 +9,7 @@ make verify
 make release-check
 ```
 
-`make verify` also runs formatter checks, examples, API build, and the generated API smoke test. Use it for local release checks when Node.js is available.
+`make verify` also runs formatter checks, the LLM benchmark catalog check, examples, API build, and the generated API smoke test. Use it for local release checks when Node.js is available.
 `make release-check` runs `make verify`, confirms `hayulo --version`, and runs `git diff --check`.
 
 ## GitHub Actions
@@ -48,6 +48,7 @@ If a CI environment cannot run Node.js, use:
 make test
 make check
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m hayulo format --check .
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m hayulo benchmark llm --json
 ```
 
 This skips generated REST API smoke tests but still validates the compiler, diagnostics, examples, project checks, and public-alpha docs tests.

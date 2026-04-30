@@ -4,7 +4,7 @@ Hayulo should mature through a repeated loop:
 
 1. inspect the queue
 2. work exactly one active issue
-3. build and test the project
+3. build, test, and benchmark the project
 4. turn newly found problems into queue issues
 5. resolve the active issue with implementation, tests, and docs
 6. close it and promote the next issue
@@ -23,6 +23,8 @@ make verify
 
 - `make test`
 - `make check`
+- `make format-check`
+- `make benchmark`
 - `make examples`
 - `make api-smoke`
 
@@ -98,10 +100,22 @@ Do not add `active` unless the issue is the single current work item.
 The language is becoming more mature when:
 
 - fewer failures are found by manual testing
+- benchmark tasks need fewer repair iterations
 - diagnostics become stable enough for snapshots
 - every syntax feature has examples and tests
 - public CLI behavior is documented
 - generated API smoke tests catch regressions
 - issues close with implementation, tests, and docs together
 
-This loop is the operating system for the 1.0 roadmap. The roadmap says what to build; the queue and `make verify` decide whether each step is actually done.
+## LLM Benchmark Loop
+
+Post-1.0 syntax and toolchain changes should be checked against the LLM benchmark suite:
+
+```sh
+make benchmark
+hayulo benchmark llm --json
+```
+
+Use the tasks in `benchmarks/llm/tasks/` to compare Hayulo with Python/FastAPI, TypeScript/Fastify, and Go. Record manual model runs under `benchmarks/llm/runs/` when a result is meaningful enough to keep.
+
+This loop is the operating system for the roadmap. The roadmap says what to build; the queue, `make verify`, and benchmark movement decide whether each step is actually improving the language.

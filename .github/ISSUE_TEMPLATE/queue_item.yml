@@ -1,5 +1,5 @@
 name: Hayulo queue item
-description: Work item for the linear Hayulo 1.0 queue
+description: Work item for the linear Hayulo queue
 title: "[Queue] "
 labels:
   - queue

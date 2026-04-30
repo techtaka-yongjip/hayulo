@@ -62,3 +62,5 @@ When adding a repair fixture:
 5. Run `make test` and `make check`.
 
 The benchmark should prefer small files with one clear failure. A coding agent should be able to repair each fixture with one focused edit.
+
+For broader app-generation comparisons across Hayulo, Python/FastAPI, TypeScript/Fastify, and Go, see [LLM Generation Benchmarks](llm_benchmarks.md).

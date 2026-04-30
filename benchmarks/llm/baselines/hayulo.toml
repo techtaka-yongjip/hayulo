@@ -1,0 +1,9 @@
+[project]
+name = "hayulo-llm-benchmark-baselines"
+version = "0.1.0"
+src = "."
+tests = "."
+
+[permissions]
+allow = ["api.read", "api.write", "api.delete", "storage.local"]
+deny = []

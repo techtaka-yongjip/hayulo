@@ -34,7 +34,7 @@ class StableContractTests(unittest.TestCase):
     def test_stable_help_lists_public_commands(self):
         result = self.run_cli("--help")
         self.assertEqual(result.returncode, 0, result.stderr)
-        for command in ["check", "run", "test", "format", "summarize", "new", "build"]:
+        for command in ["check", "run", "test", "format", "summarize", "benchmark", "new", "build"]:
             self.assertIn(command, result.stdout)
 
     def test_diagnostic_schema_contract(self):

@@ -27,6 +27,7 @@ Hayulo 1.0 stable core supports:
 - `hayulo new`, project-wide `hayulo check`, and project-wide `hayulo test`
 - `hayulo format` and `hayulo format --check`
 - `hayulo summarize --json` for repair-loop context
+- `hayulo benchmark llm --json` for local LLM benchmark suite validation
 - project permission checks for generated REST API actions
 - JSON diagnostics with stable `hayulo.diagnostics@0.1` fields plus the legacy `errors` alias
 - API `app` blocks
@@ -157,6 +158,7 @@ hayulo test examples/hello.hayulo
 hayulo run examples/data_core.hayulo
 hayulo check examples/hello.hayulo --json
 hayulo check examples/todo_api/main.hayulo --json
+hayulo benchmark llm --json
 hayulo build examples/todo_api/main.hayulo
 ```
 
@@ -183,9 +185,22 @@ hayulo check <file.hayulo> --json
 hayulo format <file-or-project>
 hayulo format --check <file-or-project>
 hayulo summarize --json [file-or-project]
+hayulo benchmark llm --json
 hayulo build <api-file.hayulo>
 hayulo build <api-file.hayulo> --out generated --json
 ```
+
+## LLM benchmark loop
+
+Hayulo now includes a local benchmark catalog for testing whether coding agents can generate and repair small REST APIs reliably:
+
+```bash
+hayulo benchmark llm --json
+hayulo check benchmarks/llm/baselines --json
+make benchmark
+```
+
+See [LLM Generation Benchmarks](docs/llm_benchmarks.md) for the task format, initial tasks, manual run loop, and result-recording convention.
 
 ## Project layout
 
@@ -248,6 +263,7 @@ hayulo-lang/
   src/hayulo/                prototype interpreter, API builder, and CLI
   examples/hello.hayulo      script example
   examples/todo_api/         REST API example
+  benchmarks/llm/            LLM generation benchmark tasks and baselines
   tests/                     Python tests for the prototype
   docs/                      design and planning documents
   SPEC.md                    seed language specification
@@ -267,6 +283,7 @@ Start here:
 - [Release Checklist](docs/release_checklist.md)
 - [1.0 Syntax Subset](docs/syntax_subset.md)
 - [Repair Benchmark Results](docs/repair_benchmarks.md)
+- [LLM Generation Benchmarks](docs/llm_benchmarks.md)
 - [CI Examples](docs/ci.md)
 - [Editor Support](docs/editor_support.md)
 - [Project Charter](PROJECT_CHARTER.md)

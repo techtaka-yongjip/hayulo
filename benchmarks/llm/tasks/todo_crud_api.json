@@ -1,0 +1,16 @@
+{
+  "schema": "hayulo.llm_benchmark.task@0.1",
+  "id": "api.todo_crud",
+  "title": "Todo CRUD REST API",
+  "category": "rest-api-generation",
+  "difficulty": "baseline",
+  "prompt": "Generate a small Todo REST API with list, get, create, mark-done, and delete operations. Enforce non-empty titles, generate OpenAPI metadata, and include smoke-testable behavior.",
+  "comparison_targets": ["hayulo", "python-fastapi", "typescript-fastify", "go-stdlib"],
+  "success_metrics": ["first_pass_check", "first_pass_tests", "repair_iterations", "diagnostic_actionability", "generated_api_smoke"],
+  "expected_outputs": ["source file", "OpenAPI document", "smoke tests"],
+  "hayulo_baseline": "benchmarks/llm/baselines/todo_crud_api/main.hayulo",
+  "manual_checks": [
+    "hayulo check benchmarks/llm/baselines/todo_crud_api/main.hayulo --json",
+    "hayulo build benchmarks/llm/baselines/todo_crud_api/main.hayulo --out /tmp/hayulo-benchmark-todo --json"
+  ]
+}

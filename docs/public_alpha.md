@@ -102,11 +102,13 @@ Good alpha feedback includes:
 - JSON output from `hayulo check --json` or `hayulo test --json`
 - whether the behavior was from the script path or API path
 - whether a coding agent was able to repair the problem
+- if testing generation quality, which [LLM benchmark](llm_benchmarks.md) task was used
 
 ## Public Alpha Docs Map
 
 - [Syntax subset](syntax_subset.md)
 - [Repair benchmark results](repair_benchmarks.md)
+- [LLM generation benchmarks](llm_benchmarks.md)
 - [CI examples](ci.md)
 - [Editor support](editor_support.md)
 - [REST API MVP](rest_api_mvp.md)

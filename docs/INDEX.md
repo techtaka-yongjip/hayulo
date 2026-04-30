@@ -18,6 +18,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Detailed Roadmap](detailed_roadmap.md): milestone-by-milestone plan.
 - [Issue Queue](issue_queue.md): GitHub issue queue rules, labels, and issue shape.
 - [Development Loop](development_loop.md): repeatable build, test, issue, and repair workflow.
+- [LLM Generation Benchmarks](llm_benchmarks.md): task catalog and result loop for measuring agent-generated programs.
 - [CI Examples](ci.md): local and GitHub Actions quality gates.
 - [Release Checklist](release_checklist.md): commands and manual checks before tagging.
 - [Compatibility Policy](compatibility.md): how 1.x compatibility is maintained.

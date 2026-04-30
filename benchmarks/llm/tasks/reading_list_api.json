@@ -1,0 +1,16 @@
+{
+  "schema": "hayulo.llm_benchmark.task@0.1",
+  "id": "api.reading_list",
+  "title": "Reading List REST API",
+  "category": "rest-api-generation",
+  "difficulty": "baseline",
+  "prompt": "Generate a reading-list REST API for bookmarks. It must list, get, create, mark read, and delete bookmarks. Include URL/title validation, tags, OpenAPI metadata, and smoke-testable behavior.",
+  "comparison_targets": ["hayulo", "python-fastapi", "typescript-fastify", "go-stdlib"],
+  "success_metrics": ["first_pass_check", "first_pass_tests", "repair_iterations", "schema_completeness", "generated_api_smoke"],
+  "expected_outputs": ["source file", "OpenAPI document", "tag field support", "smoke tests"],
+  "hayulo_baseline": "benchmarks/llm/baselines/reading_list_api/main.hayulo",
+  "manual_checks": [
+    "hayulo check benchmarks/llm/baselines/reading_list_api/main.hayulo --json",
+    "hayulo build benchmarks/llm/baselines/reading_list_api/main.hayulo --out /tmp/hayulo-benchmark-reading-list --json"
+  ]
+}

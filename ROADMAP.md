@@ -1,6 +1,6 @@
 # Hayulo Roadmap
 
-This roadmap is a planning document, not a guarantee. Hayulo is pre-alpha and will change as the project learns.
+This roadmap is a planning document, not a guarantee. Hayulo will change as the project learns.
 
 ## 1.0 Direction
 
@@ -135,6 +135,16 @@ Goal: stabilize the language and toolchain contract.
 - Document standard library core.
 - Add backwards compatibility policy.
 - Add migration policy for breaking changes.
+
+## 1.1 Measurement-Driven Improvement
+
+Goal: make future language changes accountable to LLM generation and repair results.
+
+- Add an LLM generation benchmark harness.
+- Compare Hayulo with Python/FastAPI, TypeScript/Fastify, and Go on small app-building tasks.
+- Record first-pass success, repair iterations, diagnostic usefulness, and generated API smoke-test results.
+- Use benchmark failures to create queue issues.
+- Use benchmark gains to justify declarative API actions, effect syntax, stronger types, and diagnostic changes.
 
 ## Roadmap Principle
 

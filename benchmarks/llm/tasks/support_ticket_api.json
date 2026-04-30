@@ -1,0 +1,16 @@
+{
+  "schema": "hayulo.llm_benchmark.task@0.1",
+  "id": "api.support_ticket",
+  "title": "Support Ticket REST API",
+  "category": "rest-api-generation",
+  "difficulty": "intermediate",
+  "prompt": "Generate a support ticket REST API with requester email, summary, status updates, private internal notes, list/get/create/update/delete routes, validation, OpenAPI metadata, and smoke-testable behavior.",
+  "comparison_targets": ["hayulo", "python-fastapi", "typescript-fastify", "go-stdlib"],
+  "success_metrics": ["first_pass_check", "first_pass_tests", "repair_iterations", "private_field_handling", "generated_api_smoke"],
+  "expected_outputs": ["source file", "OpenAPI document", "private field behavior", "smoke tests"],
+  "hayulo_baseline": "benchmarks/llm/baselines/support_ticket_api/main.hayulo",
+  "manual_checks": [
+    "hayulo check benchmarks/llm/baselines/support_ticket_api/main.hayulo --json",
+    "hayulo build benchmarks/llm/baselines/support_ticket_api/main.hayulo --out /tmp/hayulo-benchmark-support --json"
+  ]
+}

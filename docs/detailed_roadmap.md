@@ -189,6 +189,25 @@ Success criteria:
 - breaking changes have a documented migration path
 - the standard library, diagnostics, and formatter are documented as public contracts
 
+## Version 1.1: Measurement-Driven Improvement
+
+Goal: use LLM generation and repair benchmarks to decide which language changes actually help.
+
+Work:
+
+- add `hayulo benchmark llm --json`
+- add benchmark task fixtures for REST API generation
+- add Hayulo baseline examples for each task
+- compare Hayulo with Python/FastAPI, TypeScript/Fastify, and Go
+- record first-pass success, repair iterations, diagnostics, and smoke-test outcomes
+
+Success criteria:
+
+- future syntax proposals can cite benchmark results
+- benchmark failures create queue issues
+- `make verify` protects benchmark task metadata and Hayulo baselines
+- app-building improvements reduce repair iterations over time
+
 ## Priority Rules
 
 When choosing work, prioritize:

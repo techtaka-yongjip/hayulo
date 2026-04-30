@@ -1,0 +1,16 @@
+{
+  "schema": "hayulo.llm_benchmark.task@0.1",
+  "id": "api.webhook_receiver",
+  "title": "Webhook Receiver REST API",
+  "category": "rest-api-generation",
+  "difficulty": "intermediate",
+  "prompt": "Generate a webhook receiver REST API that accepts event payloads, stores them, lists recent events, fetches one event, marks processing state, and deletes old events. Do not execute payload content.",
+  "comparison_targets": ["hayulo", "python-fastapi", "typescript-fastify", "go-stdlib"],
+  "success_metrics": ["first_pass_check", "first_pass_tests", "repair_iterations", "safety_constraints_preserved", "generated_api_smoke"],
+  "expected_outputs": ["source file", "OpenAPI document", "safe payload handling", "smoke tests"],
+  "hayulo_baseline": "benchmarks/llm/baselines/webhook_receiver_api/main.hayulo",
+  "manual_checks": [
+    "hayulo check benchmarks/llm/baselines/webhook_receiver_api/main.hayulo --json",
+    "hayulo build benchmarks/llm/baselines/webhook_receiver_api/main.hayulo --out /tmp/hayulo-benchmark-webhook --json"
+  ]
+}

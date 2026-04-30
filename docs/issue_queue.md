@@ -1,6 +1,6 @@
 # GitHub Issue Queue
 
-GitHub Issues are the source of truth for Hayulo 1.0 execution.
+GitHub Issues are the source of truth for Hayulo execution.
 
 ## Queue Rules
 
@@ -32,6 +32,7 @@ Milestones:
 - `milestone-0.8`
 - `milestone-0.9`
 - `milestone-1.0`
+- `milestone-1.1`
 
 Areas:
 
@@ -48,6 +49,7 @@ Priority labels:
 - `priority/001`
 - `priority/002`
 - continue in queue order
+- `priority/011` starts the post-1.0 improvement queue
 
 ## Issue Shape
 
@@ -60,4 +62,12 @@ Every queue issue should include:
 - Required docs update
 - Commands to run
 
-Use the `Hayulo queue item` issue template for all 1.0 queue work.
+Use the `Hayulo queue item` issue template for all queue work.
+
+## Post-1.0 Queue
+
+The post-1.0 queue starts with measurement:
+
+- Queue 011: add the LLM generation benchmark harness.
+- Later syntax, type-system, effect, and API-action changes should cite benchmark evidence when possible.
+- New benchmark-related work should use `area-tooling`, `area-tests`, and `area-docs` unless a more specific parser/runtime/API area owns the change.

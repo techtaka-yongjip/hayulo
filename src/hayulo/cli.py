@@ -9,6 +9,7 @@ from typing import Any
 
 from . import __version__
 from .api import check_api_permissions, generate_api, looks_like_api_source, parse_api_source, required_api_permissions
+from .benchmarks import llm_benchmark_payload
 from .checker import check_program
 from .diagnostics import TEST_SCHEMA, Diagnostic, HayuloError, diagnostic_failure_payload
 from .formatter import check_format
@@ -460,6 +461,23 @@ def cmd_summarize(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_benchmark(args: argparse.Namespace) -> int:
+    try:
+        payload = llm_benchmark_payload(Path(args.root), args.suite)
+    except HayuloError as error:
+        return handle_error(error, args.json)
+
+    if args.json:
+        emit_json(payload)
+    else:
+        summary = payload["summary"]
+        print(f"{payload['suite']} benchmark: {summary['tasks']} tasks, {summary['recorded_runs']} recorded runs")
+        for task in payload["tasks"]:
+            targets = ", ".join(task["comparison_targets"])
+            print(f"  {task['id']}: {task['title']} [{targets}]")
+    return 0
+
+
 def summarize_target(target: Path) -> dict[str, Any]:
     if target.is_dir():
         config = load_project(target)
@@ -803,6 +821,12 @@ def build_parser() -> argparse.ArgumentParser:
     summarize.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
     summarize.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     summarize.set_defaults(func=cmd_summarize)
+
+    benchmark = sub.add_parser("benchmark", help="validate and summarize benchmark suites")
+    benchmark.add_argument("suite", nargs="?", default="llm", help="benchmark suite; currently only 'llm'")
+    benchmark.add_argument("--root", default=".", help="repository root containing benchmarks/")
+    benchmark.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    benchmark.set_defaults(func=cmd_benchmark)
 
     new = sub.add_parser("new", help="create a Hayulo project")
     new.add_argument("kind_or_path", help="project directory, or 'api' for the REST API template")

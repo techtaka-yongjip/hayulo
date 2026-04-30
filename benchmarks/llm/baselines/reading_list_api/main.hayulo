@@ -1,0 +1,60 @@
+module benchmark.reading_list_api
+
+intent {
+  purpose: "Baseline for generating a reading-list API with tags and completion state."
+  constraints: [
+    "Keep URLs bounded.",
+    "Allow agent-generated clients to inspect and update read state.",
+    "Preserve enough metadata for useful generated OpenAPI."
+  ]
+}
+
+app ReadingListBenchmarkApi {
+  database sqlite "reading_list_benchmark.db"
+
+  openapi {
+    title: "Reading List Benchmark API"
+    version: "0.1.0"
+  }
+
+  type Bookmark = record {
+    id: Id<Bookmark>
+    url: Text min 1 max 2048
+    title: Text min 1 max 200
+    tags: List<Text>
+    read: Bool = false
+    created_at: Time = now()
+  }
+
+  route GET "/bookmarks" -> List<Bookmark> {
+    return db.Bookmark.all(order: created_at desc)
+  }
+
+  route GET "/bookmarks/{id}" -> Bookmark {
+    return db.Bookmark.get(id)?
+  }
+
+  route POST "/bookmarks" body input: CreateBookmark -> Bookmark {
+    return db.Bookmark.insert(Bookmark {
+      url: input.url
+      title: input.title
+      tags: input.tags
+    })
+  }
+
+  route PATCH "/bookmarks/{id}/done" -> Bookmark {
+    bookmark = db.Bookmark.get(id)?
+    return db.Bookmark.update(bookmark with { read: true })
+  }
+
+  route DELETE "/bookmarks/{id}" -> Status {
+    db.Bookmark.delete(id)?
+    return no_content
+  }
+}
+
+type CreateBookmark = record {
+  url: Text min 1 max 2048
+  title: Text min 1 max 200
+  tags: List<Text>
+}

@@ -2,7 +2,7 @@ PYTHON ?= python3
 GH ?= gh
 ENV = PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src
 
-.PHONY: test check format-check examples api-build api-smoke verify release-check ci queue-status queue-active
+.PHONY: test check format-check benchmark examples api-build api-smoke verify release-check ci queue-status queue-active
 
 test:
 	$(ENV) $(PYTHON) -m unittest discover -s tests
@@ -17,6 +17,11 @@ format-check:
 	$(ENV) $(PYTHON) -m hayulo format --check .
 	$(ENV) $(PYTHON) -m hayulo format --check tests/fixtures/formatted.hayulo
 
+benchmark:
+	$(ENV) $(PYTHON) -m hayulo benchmark llm --json
+	$(ENV) $(PYTHON) -m hayulo check benchmarks/llm/baselines --json
+	$(ENV) $(PYTHON) -m hayulo format --check benchmarks/llm/baselines --json
+
 examples:
 	$(ENV) $(PYTHON) -m hayulo run examples/hello.hayulo
 	$(ENV) $(PYTHON) -m hayulo test examples/hello.hayulo
@@ -30,7 +35,7 @@ api-build:
 api-smoke: api-build
 	cd examples/todo_api/generated && npm test
 
-verify: test check format-check examples api-smoke
+verify: test check format-check benchmark examples api-smoke
 
 release-check: verify
 	$(ENV) $(PYTHON) -m hayulo --version
