@@ -10,6 +10,7 @@ from .ast import (
     FieldAccess,
     For,
     FunctionDecl,
+    FunctionParam,
     If,
     Index,
     ListLiteral,
@@ -95,26 +96,30 @@ class Parser:
         self._consume("RPAREN", "Expected ')' after parameters.")
 
         if self._match("ARROW"):
-            self._skip_type_until("LBRACE")
+            return_type = self._type_until("LBRACE")
+        else:
+            return_type = None
 
         body = self._block()
-        return FunctionDecl(name=name.value, params=params, body=body, line=name.line)
+        return FunctionDecl(name=name.value, params=params, return_type=return_type, body=body, line=name.line)
 
     def _test_decl(self) -> TestDecl:
         name = self._consume("STRING", "Expected test name string after 'test'.")
         body = self._block()
         return TestDecl(name=name.value, body=body, line=name.line)
 
-    def _params(self) -> list[str]:
-        params: list[str] = []
+    def _params(self) -> list[FunctionParam]:
+        params: list[FunctionParam] = []
         if self._check("RPAREN"):
             return params
 
         while True:
             param = self._consume("IDENT", "Expected parameter name.")
-            params.append(param.value)
             if self._match("COLON"):
-                self._skip_type_until("COMMA", "RPAREN")
+                type_name = self._type_until("COMMA", "RPAREN")
+            else:
+                type_name = None
+            params.append(FunctionParam(param.value, type_name, line=param.line))
             if not self._match("COMMA"):
                 break
         return params
@@ -129,7 +134,8 @@ class Parser:
 
     def _statement(self) -> Stmt:
         if self._match("RETURN"):
-            return Return(self._expression())
+            line = self._previous().line
+            return Return(self._expression(), line=line)
 
         if self._match("IF"):
             condition = self._expression()
@@ -160,9 +166,10 @@ class Parser:
             return Expect(self._expression(), line=line)
 
         if self._check("IDENT") and self._check_next("EQUAL"):
-            name = self._advance().value
+            token = self._advance()
+            name = token.value
             self._consume("EQUAL", "Expected '=' after variable name.")
-            return Assign(name, self._expression())
+            return Assign(name, self._expression(), line=token.line)
 
         expr = self._expression()
         return ExprStmt(expr)
@@ -289,7 +296,8 @@ class Parser:
         if self._check("LBRACE"):
             return self._map_literal()
         if self._match("IDENT"):
-            return Variable(self._previous().value)
+            token = self._previous()
+            return Variable(token.value, line=token.line)
         if self._match("LPAREN"):
             expr = self._expression()
             self._consume("RPAREN", "Expected ')' after expression.")
@@ -372,19 +380,25 @@ class Parser:
         )
 
     def _skip_type_until(self, *end_kinds: str) -> None:
+        self._type_until(*end_kinds)
+
+    def _type_until(self, *end_kinds: str) -> str:
+        parts: list[str] = []
         depth = 0
         while not self._is_at_end():
             if depth == 0 and self._check(*end_kinds):
-                return
-            if self._match("LT", "LBRACKET", "LPAREN"):
+                break
+            if self._check("LT", "LBRACKET", "LPAREN"):
                 depth += 1
-                continue
-            if self._match("GT", "RBRACKET", "RPAREN"):
+            elif self._check("GT", "RBRACKET", "RPAREN"):
                 if depth > 0:
                     depth -= 1
-                    continue
-                return
-            self._advance()
+                elif self._check(*end_kinds):
+                    break
+            parts.append(self._advance().value)
+        if not parts:
+            self._error_here("syntax_error", "Expected type annotation.", ["Add a type name such as Int, Text, or List<Int>."])
+        return "".join(parts)
 
     def _skip_balanced_block(self, label: str) -> None:
         self._consume("LBRACE", f"Expected '{{' after {label}.")

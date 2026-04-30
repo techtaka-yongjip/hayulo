@@ -22,6 +22,7 @@ Hayulo currently supports:
 - script functions, variables, conditionals, `return`, `test`, and `expect`
 - list literals, map literals, indexing, and `for` loops
 - basic record values with field access
+- static checking preview for names, arity, returns, and record fields
 - JSON diagnostics from the CLI
 - API `app` blocks
 - API `type ... = record` declarations

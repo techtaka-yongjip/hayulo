@@ -220,6 +220,22 @@ print(value)
 len(value)
 ```
 
+## Static checking preview
+
+`hayulo check` runs a static checking preview for script files.
+
+The checker currently reports:
+
+- unknown local names and functions
+- wrong function call arity
+- basic argument type mismatches from annotations
+- local type inference for literals, lists, maps, records, indexing, and calls
+- return values that do not match explicit return annotations
+- invalid record field access when the record value is locally known
+- invalid indexing and invalid `for` loop targets
+
+This is not a complete type system. The checker is intentionally local and conservative. Unknown or unannotated values are allowed so early Hayulo programs remain easy to write.
+
 ## Tests
 
 Tests are part of the language.
@@ -278,6 +294,21 @@ Successful `hayulo check --json` output includes top-level intent metadata when 
   "functions": ["greet", "main"],
   "tests": ["greet returns a friendly message"]
 }
+```
+
+The static checker uses namespaced diagnostic codes for new stable checks. Examples include:
+
+```text
+name.unknown_symbol
+name.duplicate_definition
+call.arity_mismatch
+type.argument_mismatch
+type.return_mismatch
+type.invalid_index
+type.invalid_index_target
+type.not_iterable
+record.unknown_field
+record.invalid_field_target
 ```
 
 ## Planned but not yet implemented

@@ -136,7 +136,7 @@ class Interpreter:
                 line=fn.line,
             )
 
-        env = dict(zip(fn.params, args))
+        env = {param.name: value for param, value in zip(fn.params, args)}
         self.env_stack.append(env)
         try:
             self._exec_block(fn.body)

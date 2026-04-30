@@ -8,6 +8,7 @@ from typing import Any
 
 from . import __version__
 from .api import generate_api, looks_like_api_source, parse_api_source
+from .checker import check_program
 from .diagnostics import Diagnostic, HayuloError
 from .intent import parse_top_level_intent
 from .interpreter import Interpreter
@@ -102,6 +103,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             }
         else:
             program = load_program(path, source)
+            check_program(program, filename=str(path))
             payload = {
                 "status": "ok",
                 "kind": "script",

@@ -14,8 +14,16 @@ class Program:
 @dataclass
 class FunctionDecl:
     name: str
-    params: list[str]
+    params: list["FunctionParam"]
+    return_type: str | None
     body: list["Stmt"]
+    line: int
+
+
+@dataclass
+class FunctionParam:
+    name: str
+    type_name: str | None
     line: int
 
 
@@ -34,11 +42,13 @@ class Stmt:
 class Assign(Stmt):
     name: str
     expr: "Expr"
+    line: int
 
 
 @dataclass
 class Return(Stmt):
     expr: "Expr"
+    line: int
 
 
 @dataclass
@@ -79,6 +89,7 @@ class Literal(Expr):
 @dataclass
 class Variable(Expr):
     name: str
+    line: int
 
 
 @dataclass

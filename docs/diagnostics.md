@@ -108,26 +108,36 @@ A mature diagnostic should include:
 
 ## Diagnostic code namespace
 
-Suggested namespaces:
+Hayulo 0.4 introduces namespaced static checker diagnostics. These codes should be treated as the stable preview namespace for script checking:
+
+```text
+name.unknown_symbol
+name.duplicate_definition
+call.arity_mismatch
+type.argument_mismatch
+type.return_mismatch
+type.operator_mismatch
+type.invalid_index
+type.invalid_index_target
+type.not_iterable
+record.unknown_field
+record.invalid_field_target
+```
+
+Existing parser, runtime, and API diagnostics still include earlier prototype codes. Those should be migrated into namespaces before the diagnostic schema is frozen.
+
+Future namespaces should follow the same pattern:
 
 ```text
 syntax.expected_token
-syntax.expected_expression
-syntax.unclosed_block
-name.unknown_symbol
-name.duplicate_definition
-type.mismatch
 type.unknown_type
-type.option_not_handled
-type.result_not_handled
 effect.permission_missing
-effect.denied
 test.expectation_failed
 project.missing_config
 package.version_conflict
 ```
 
-Diagnostic codes should be treated as public API. Once external tools depend on a code, it should not be renamed casually.
+Diagnostic codes should be treated as public API once documented. Once external tools depend on a code, it should not be renamed casually.
 
 ## Suggestions must be safe
 
