@@ -6,7 +6,7 @@ The core idea is simple:
 
 > Humans express intent. Coding agents generate and repair code. Hayulo checks, builds, tests, and helps turn the result into useful software.
 
-Hayulo is pre-alpha. It is not production-ready. Outside testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based prototype with two tracks:
+Hayulo 1.0 defines a small stable core for experimentation and outside testing. It is not recommended for critical production systems yet, but the documented 1.0 CLI, syntax subset, project format, formatter, diagnostics, and generated REST API workflow are treated as stable within the 1.x line. New testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based toolchain with two tracks:
 
 1. A tiny script interpreter for early language experiments.
 2. A new REST API MVP path that checks a `.hayulo` API source file and generates a runnable Node.js REST server.
@@ -15,7 +15,7 @@ The REST API path is now the main product direction: make Hayulo the easiest lan
 
 ## Status
 
-Hayulo currently supports:
+Hayulo 1.0 stable core supports:
 
 - `module` declarations
 - `intent` blocks as source metadata
@@ -40,6 +40,8 @@ Hayulo currently supports:
 - generated smoke tests
 
 The generated REST API uses Node.js built-ins and a local JSON file store for the MVP, so it can run without external runtime dependencies. Future versions can target TypeScript, Hono/Fastify, real SQLite migrations, auth adapters, and deployment targets.
+
+Compatibility and migration policies are documented in [Compatibility Policy](docs/compatibility.md) and [Migration Policy](docs/migration_policy.md).
 
 ## Script example
 
@@ -258,7 +260,12 @@ hayulo-lang/
 Start here:
 
 - [Public Alpha Guide](docs/public_alpha.md)
-- [Candidate Syntax Subset](docs/syntax_subset.md)
+- [1.0 Stable Core Contract](docs/stable_contract_1_0.md)
+- [Compatibility Policy](docs/compatibility.md)
+- [Migration Policy](docs/migration_policy.md)
+- [Standard Library Core](docs/standard_library_core.md)
+- [Release Checklist](docs/release_checklist.md)
+- [1.0 Syntax Subset](docs/syntax_subset.md)
 - [Repair Benchmark Results](docs/repair_benchmarks.md)
 - [CI Examples](docs/ci.md)
 - [Editor Support](docs/editor_support.md)

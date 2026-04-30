@@ -120,7 +120,7 @@ class CliTests(unittest.TestCase):
     def test_version(self):
         result = self.run_cli("--version")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "hayulo 0.2.0\n")
+        self.assertEqual(result.stdout, "hayulo 1.0.0\n")
 
     def test_run_hello(self):
         result = self.run_cli("run", str(EXAMPLES / "hello.hayulo"))

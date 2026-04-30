@@ -190,7 +190,7 @@ Create a small CLI tool from scratch.
 
 - Publish repo with working prototype.
 - Provide clear docs and examples.
-- Be honest that it is pre-alpha.
+- Be honest that it is a small stable core and not recommended for critical production systems.
 - Ask for design feedback.
 
 ### Stage 2: Useful toy apps
@@ -224,11 +224,11 @@ Avoid overclaiming.
 Use phrases like:
 
 - experimental
-- early prototype
+- small stable core
 - designed for
 - aims to
 - roadmap
-- pre-alpha
+- not recommended for critical production systems
 
 Avoid phrases like:
 

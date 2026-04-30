@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hayulo-lang-prototype"
-version = "0.2.0"
-description = "Pre-alpha Hayulo prototype: an AI-friendly language/toolchain for scripts and REST API generation."
+version = "1.0.0"
+description = "Hayulo 1.0 stable core: an AI-friendly language/toolchain for scripts and REST API generation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -14,7 +14,7 @@ authors = [
 ]
 keywords = ["programming-language", "compiler", "interpreter", "rest-api", "ai", "llm"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",

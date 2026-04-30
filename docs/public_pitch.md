@@ -48,11 +48,11 @@ Hayulo combines:
 
 ## Short launch post
 
-Today I am publishing the seed prototype of Hayulo, an experimental open-source programming language for AI-assisted software creation.
+Today I am publishing Hayulo 1.0 stable core, an experimental open-source programming language for AI-assisted software creation.
 
 The idea is simple: humans should be able to express intent, LLMs should be able to generate and repair code, and the compiler should provide structured diagnostics and tests that make the loop reliable.
 
-The prototype is tiny, but real: it has a lexer, parser, interpreter, CLI, examples, tests, and JSON diagnostics.
+The core is small, but real: it has a lexer, parser, interpreter, CLI, formatter, examples, tests, JSON diagnostics, project permissions, and REST API generation.
 
 The larger ambition is to build a language where intent, code, tests, permissions, and repair are part of one coherent workflow.
 
@@ -81,7 +81,7 @@ The language and toolchain are built together for that loop.
 
 ## Honest limitation statement
 
-Hayulo is pre-alpha. It is not production-ready. The current version is a seed prototype intended to explore the language design and invite contributors.
+Hayulo 1.0 stabilizes a small core, but it is not recommended for critical production systems. The current version is intended for outside testing, repair-loop research, REST API generation experiments, and contributor feedback.
 
 ## Comparison language
 

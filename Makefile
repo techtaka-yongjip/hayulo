@@ -2,7 +2,7 @@ PYTHON ?= python3
 GH ?= gh
 ENV = PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src
 
-.PHONY: test check format-check examples api-build api-smoke verify ci queue-status queue-active
+.PHONY: test check format-check examples api-build api-smoke verify release-check ci queue-status queue-active
 
 test:
 	$(ENV) $(PYTHON) -m unittest discover -s tests
@@ -32,7 +32,11 @@ api-smoke: api-build
 
 verify: test check format-check examples api-smoke
 
-ci: verify
+release-check: verify
+	$(ENV) $(PYTHON) -m hayulo --version
+	git diff --check
+
+ci: release-check
 
 queue-status:
 	@$(GH) issue list --state open --label queue --limit 50 --json number,title,labels,milestone --jq 'sort_by(([.labels[].name | select(startswith("priority/"))][0]) // "priority/999")[] | "#\(.number) \(.title) | milestone=\(.milestone.title // "-") | labels=\([.labels[].name] | join(","))"'

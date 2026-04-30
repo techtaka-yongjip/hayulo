@@ -1,8 +1,8 @@
 # Public Alpha Guide
 
-Hayulo public alpha is for outside testers who want to try the current AI-friendly language and REST API generator, understand the limits, and report useful issues.
+Hayulo public alpha is for outside testers who want to try the 1.0 stable core, understand the limits, and report useful issues.
 
-Hayulo is still pre-1.0. The alpha goal is not production use. The goal is to make the loop repeatable:
+Hayulo 1.0 stabilizes a small core, but it is still not recommended for critical production systems. The alpha testing goal is to make this loop repeatable:
 
 ```text
 write or generate Hayulo
@@ -74,7 +74,7 @@ npm start
 ## What Is Stable Enough to Test
 
 - CLI commands documented in [README.md](../README.md)
-- candidate language subset in [syntax_subset.md](syntax_subset.md)
+- 1.0 language subset in [syntax_subset.md](syntax_subset.md)
 - JSON diagnostic envelope `hayulo.diagnostics@0.1`
 - JSON test envelope `hayulo.test@0.1`
 - `hayulo.toml` project discovery

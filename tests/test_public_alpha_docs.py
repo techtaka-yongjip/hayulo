@@ -68,7 +68,7 @@ class PublicAlphaDocsTests(unittest.TestCase):
         self.assertIn("actions/setup-node@v4", workflow)
         self.assertIn("make test", workflow)
         self.assertIn("make check", workflow)
-        self.assertIn("make verify", workflow)
+        self.assertIn("make release-check", workflow)
 
     def test_repair_benchmark_document_matches_fixtures(self):
         doc = (DOCS / "repair_benchmarks.md").read_text(encoding="utf-8")
@@ -85,10 +85,10 @@ class PublicAlphaDocsTests(unittest.TestCase):
             payload = json.loads(result.stdout)
             self.assertEqual(payload["diagnostics"][0]["code"], code)
 
-    def test_candidate_subset_marks_pre_1_0_and_limits(self):
+    def test_candidate_subset_marks_1_0_and_limits(self):
         text = (DOCS / "syntax_subset.md").read_text(encoding="utf-8")
-        self.assertIn("pre-1.0", text)
-        self.assertIn("Out of Scope for Public Alpha", text)
+        self.assertIn("Hayulo 1.0 stable syntax subset", text)
+        self.assertIn("Out of Scope for 1.0", text)
         self.assertIn("TypeScript generation", text)
         self.assertIn("language-level effects enforcement", text)
 

@@ -26,7 +26,7 @@ The more fragmented the toolchain becomes, the harder it is for humans and LLMs 
 
 ## Command roadmap
 
-Implemented in seed prototype:
+Implemented in the 1.0 stable core:
 
 ```bash
 hayulo --version

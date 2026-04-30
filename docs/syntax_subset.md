@@ -1,6 +1,6 @@
-# Candidate Syntax Subset
+# Hayulo 1.0 Syntax Subset
 
-This is the public-alpha candidate syntax subset. It is marked pre-1.0: testers can rely on this document to understand current behavior, but the project may still change syntax before the 1.0 stable core.
+This is the Hayulo 1.0 stable syntax subset. Testers can rely on this document for the supported 1.x core. Future releases may add syntax, but existing documented syntax should remain compatible according to [compatibility.md](compatibility.md).
 
 ## Source Structure
 
@@ -144,7 +144,7 @@ Current stable preview envelopes:
 
 The legacy compact `errors`, `passed`, and `failed` fields remain for compatibility.
 
-## Out of Scope for Public Alpha
+## Out of Scope for 1.0
 
 Not implemented in the public-alpha subset:
 

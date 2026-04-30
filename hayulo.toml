@@ -1,6 +1,6 @@
 [project]
 name = "hayulo-examples"
-version = "0.5.0"
+version = "1.0.0"
 src = "examples"
 tests = "examples"
 exclude = ["examples/future_todo_api.hayulo"]

@@ -6,9 +6,11 @@ Hayulo public alpha uses a small CI gate:
 make test
 make check
 make verify
+make release-check
 ```
 
 `make verify` also runs formatter checks, examples, API build, and the generated API smoke test. Use it for local release checks when Node.js is available.
+`make release-check` runs `make verify`, confirms `hayulo --version`, and runs `git diff --check`.
 
 ## GitHub Actions
 
@@ -35,7 +37,7 @@ jobs:
       - run: python -m pip install -e .
       - run: make test
       - run: make check
-      - run: make verify
+      - run: make release-check
 ```
 
 ## Minimal CI Without Node
@@ -56,7 +58,7 @@ Before tagging a public alpha build:
 
 ```bash
 make queue-active
-make verify
+make release-check
 git status --short
 ```
 

@@ -1,8 +1,23 @@
-# Hayulo 0.1 Seed Specification
+# Hayulo 1.0 Stable Core Specification
 
 Hayulo is an experimental programming language for AI-assisted software creation.
 
-This document describes the seed version implemented in this repository. It is intentionally small.
+This document describes the Hayulo 1.0 stable core implemented in this repository. The core is intentionally small: it stabilizes the syntax and toolchain surface that exists today, while leaving broader language and ecosystem features for later releases.
+
+## Contract status
+
+Hayulo 1.0 stabilizes:
+
+- the script syntax documented here
+- the REST API syntax documented in the API addendum
+- the `hayulo.toml` project format
+- formatter behavior
+- JSON diagnostic and test envelopes
+- generated REST API file names and smoke-test workflow
+- project permissions for generated API behavior
+- CLI commands listed in [docs/stable_contract_1_0.md](docs/stable_contract_1_0.md)
+
+See [docs/compatibility.md](docs/compatibility.md) and [docs/migration_policy.md](docs/migration_policy.md) for how these contracts evolve.
 
 ## Design goals
 
@@ -125,7 +140,7 @@ A module declaration names the file's logical module.
 module app.main
 ```
 
-In the current prototype, modules are parsed but not linked.
+In 1.0, modules are parsed and reported but not linked.
 
 ## Intent blocks
 
@@ -141,7 +156,7 @@ intent {
 }
 ```
 
-In the current prototype, intent blocks are skipped during execution and exposed by `hayulo check --json` as metadata. Future compilers should also expose them to documentation, refactoring tools, and AI repair systems.
+In 1.0, intent blocks are skipped during execution and exposed by `hayulo check --json` as metadata. Future compilers should also expose them to documentation, refactoring tools, and AI repair systems.
 
 ## Functions
 
@@ -153,7 +168,7 @@ fn add(a: Int, b: Int) -> Int {
 }
 ```
 
-The current prototype accepts type annotations but does not enforce them yet.
+Hayulo 1.0 accepts type annotations and enforces the subset described in the static checking preview.
 
 A file run with `hayulo run` must contain `fn main()`.
 
@@ -166,11 +181,11 @@ name = "Ada"
 age = 36
 ```
 
-The current prototype uses function-local variables.
+Hayulo 1.0 uses function-local variables.
 
 ## Values
 
-Supported values in the current prototype:
+Supported values in Hayulo 1.0:
 
 - `Int`
 - `Float`
@@ -209,7 +224,7 @@ Lists are indexed with `Int` values. Maps are indexed with existing keys.
 
 ## Records
 
-The current prototype supports basic record values without static record declarations in script files.
+Hayulo 1.0 supports basic record values without static record declarations in script files.
 
 ```hayulo
 user = User {
@@ -282,7 +297,7 @@ A function without an explicit return returns `None` in the prototype runtime.
 
 ## Built-ins
 
-The prototype includes:
+Hayulo 1.0 includes:
 
 ```hayulo
 print(value)
@@ -303,7 +318,7 @@ The checker currently reports:
 - invalid record field access when the record value is locally known
 - invalid indexing and invalid `for` loop targets
 
-This is not a complete type system. The checker is intentionally local and conservative. Unknown or unannotated values are allowed so early Hayulo programs remain easy to write.
+This is not a complete type system. The checker is intentionally local and conservative. Unknown or unannotated values are allowed so Hayulo programs remain easy to write and repair.
 
 ## Tests
 
@@ -436,9 +451,9 @@ record.unknown_field
 record.invalid_field_target
 ```
 
-## Planned but not yet implemented
+## Outside the 1.0 stable core
 
-Hayulo 0.1 seed intentionally leaves these for future work:
+Hayulo 1.0 intentionally leaves these for future work:
 
 - static type checker
 - `Option` and `Result`
