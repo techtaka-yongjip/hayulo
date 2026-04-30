@@ -6,7 +6,7 @@ The core idea is simple:
 
 > Humans express intent. Coding agents generate and repair code. Hayulo checks, builds, tests, and helps turn the result into useful software.
 
-Hayulo is pre-alpha. It is not production-ready. The current implementation is a Python-based prototype with two tracks:
+Hayulo is pre-alpha. It is not production-ready. Outside testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based prototype with two tracks:
 
 1. A tiny script interpreter for early language experiments.
 2. A new REST API MVP path that checks a `.hayulo` API source file and generates a runnable Node.js REST server.
@@ -257,6 +257,11 @@ hayulo-lang/
 
 Start here:
 
+- [Public Alpha Guide](docs/public_alpha.md)
+- [Candidate Syntax Subset](docs/syntax_subset.md)
+- [Repair Benchmark Results](docs/repair_benchmarks.md)
+- [CI Examples](docs/ci.md)
+- [Editor Support](docs/editor_support.md)
 - [Project Charter](PROJECT_CHARTER.md)
 - [Vision](docs/vision.md)
 - [Philosophy](docs/philosophy.md)

@@ -4,6 +4,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 
 ## Start here
 
+- [Public Alpha Guide](public_alpha.md): install, examples, limits, and testing workflow for outside testers.
 - [Vision](vision.md): the long-term picture.
 - [Philosophy](philosophy.md): the beliefs behind the language.
 - [Ambitions](ambitions.md): what Hayulo could become over time.
@@ -16,6 +17,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Detailed Roadmap](detailed_roadmap.md): milestone-by-milestone plan.
 - [Issue Queue](issue_queue.md): GitHub issue queue rules, labels, and issue shape.
 - [Development Loop](development_loop.md): repeatable build, test, issue, and repair workflow.
+- [CI Examples](ci.md): local and GitHub Actions quality gates.
 - [Adoption and Ecosystem](adoption_and_ecosystem.md): how the ecosystem can grow.
 - [Launch Plan](launch_plan.md): practical open-source launch steps.
 - [Public Pitch](public_pitch.md): messaging, taglines, and launch copy.
@@ -29,6 +31,9 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Project System](project_system.md): `hayulo.toml`, `src/`, `tests/`, and project-wide commands.
 - [Standard Library Plan](standard_library_plan.md): modules needed for useful apps.
 - [Diagnostics](diagnostics.md): current and future diagnostic direction.
+- [Candidate Syntax Subset](syntax_subset.md): public-alpha syntax and known exclusions.
+- [Repair Benchmark Results](repair_benchmarks.md): current stable diagnostic fixtures and outcomes.
+- [Editor Support](editor_support.md): minimal grammar preview and editor roadmap.
 
 ## Safety, trust, and governance
 
