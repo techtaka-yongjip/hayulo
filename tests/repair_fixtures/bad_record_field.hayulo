@@ -1,0 +1,6 @@
+module repair_bad_record_field
+
+fn main() {
+  user = User { name: "Ada" }
+  print(user.email)
+}

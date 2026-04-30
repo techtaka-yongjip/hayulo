@@ -1,4 +1,22 @@
 {
+  "diagnostics": [
+    {
+      "code": "unknown_function",
+      "details": {},
+      "location": {
+        "column": null,
+        "file": "tests/fixtures/runtime_error.hayulo",
+        "line": 4
+      },
+      "message": "Unknown function 'missing'.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Define this function or check the function name for typos."
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": "unknown_function",
@@ -10,5 +28,6 @@
       ]
     }
   ],
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed"
 }

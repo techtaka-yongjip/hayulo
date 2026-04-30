@@ -25,7 +25,9 @@ Hayulo currently supports:
 - static checking preview for names, arity, returns, and record fields
 - `hayulo.toml` projects with `src/` and `tests/` conventions
 - `hayulo new`, project-wide `hayulo check`, and project-wide `hayulo test`
-- JSON diagnostics from the CLI
+- `hayulo format` and `hayulo format --check`
+- `hayulo summarize --json` for repair-loop context
+- JSON diagnostics with stable `hayulo.diagnostics@0.1` fields plus the legacy `errors` alias
 - API `app` blocks
 - API `type ... = record` declarations
 - API `database sqlite "..."` declarations
@@ -162,6 +164,9 @@ hayulo test [project-dir]
 hayulo check <file.hayulo>
 hayulo check [project-dir]
 hayulo check <file.hayulo> --json
+hayulo format <file-or-project>
+hayulo format --check <file-or-project>
+hayulo summarize --json [file-or-project]
 hayulo build <api-file.hayulo>
 hayulo build <api-file.hayulo> --out generated --json
 ```

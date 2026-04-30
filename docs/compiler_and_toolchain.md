@@ -29,19 +29,16 @@ The more fragmented the toolchain becomes, the harder it is for humans and LLMs 
 Implemented in seed prototype:
 
 ```bash
+hayulo --version
+hayulo new my-app
 hayulo run examples/hello.hayulo
 hayulo test examples/hello.hayulo
+hayulo test --json
 hayulo check examples/hello.hayulo --json
-```
-
-Near-term commands:
-
-```bash
-hayulo --version
 hayulo format <path>
-hayulo new <name>
-hayulo check <path> --json
-hayulo test <path> --json
+hayulo format --check <path>
+hayulo summarize --json
+hayulo build examples/todo_api/main.hayulo
 ```
 
 Medium-term commands:
@@ -49,10 +46,8 @@ Medium-term commands:
 ```bash
 hayulo init
 hayulo add <package>
-hayulo build
 hayulo doc
 hayulo watch
-hayulo summarize --json
 ```
 
 Long-term commands:
@@ -85,7 +80,7 @@ Suggested shape:
 
 ```json
 {
-  "version": "hayulo.diagnostics@0.1",
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed",
   "diagnostics": [
     {
@@ -170,7 +165,7 @@ A repair tool should not automatically:
 
 ## Formatter
 
-`hayulo format` should be deterministic and opinionated.
+`hayulo format` is deterministic and intentionally conservative in the current prototype.
 
 Goals:
 
@@ -179,7 +174,13 @@ Goals:
 - avoid style arguments
 - make examples consistent
 
-Formatter rules should be part of the language spec.
+Current rules are specified in `SPEC.md`: two-space indentation, block-aware indentation for braces and multi-line lists, no trailing whitespace, no trailing blank lines, and one final newline.
+
+CI should run:
+
+```bash
+hayulo format --check .
+```
 
 ## Test runner
 
@@ -199,7 +200,7 @@ Example output:
 
 ```json
 {
-  "version": "hayulo.test@0.1",
+  "schema": "hayulo.test@0.1",
   "status": "failed",
   "summary": {
     "passed": 12,

@@ -283,6 +283,20 @@ hayulo test examples/hello.hayulo
 hayulo test examples/hello.hayulo --json
 ```
 
+## Formatting
+
+`hayulo format` provides deterministic formatting for supported Hayulo source files.
+
+Current formatting rules:
+
+- two-space indentation
+- indentation follows `{ ... }` and multi-line `[ ... ]` blocks
+- trailing whitespace is removed
+- repeated trailing blank lines are removed
+- formatted files end with exactly one newline
+
+Use `hayulo format --check <file-or-project>` in repair loops and CI to fail when a source file is not formatted without rewriting it.
+
 ## Diagnostics
 
 Hayulo diagnostics are designed to be useful to both humans and LLMs.
@@ -293,7 +307,26 @@ JSON output is machine-readable:
 
 ```json
 {
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed",
+  "diagnostics": [
+    {
+      "code": "syntax_error",
+      "severity": "error",
+      "message": "Expected ')' after arguments.",
+      "location": {
+        "file": "examples/broken.hayulo",
+        "line": 4,
+        "column": 15
+      },
+      "details": {},
+      "suggestions": [
+        {
+          "message": "Check punctuation near this location."
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": "syntax_error",
@@ -302,6 +335,29 @@ JSON output is machine-readable:
       "line": 4,
       "column": 15,
       "suggestions": ["Check punctuation near this location."]
+    }
+  ]
+}
+```
+
+The `errors` field is retained as a compact compatibility alias during the prototype. New repair tools should prefer `schema` and `diagnostics`.
+
+Failing `hayulo test --json` output uses `hayulo.test@0.1`:
+
+```json
+{
+  "schema": "hayulo.test@0.1",
+  "status": "failed",
+  "summary": {
+    "passed": 0,
+    "failed": 1
+  },
+  "failures": [
+    {
+      "test": "add works",
+      "file": "tests/main_test.hayulo",
+      "line": 3,
+      "message": "Expectation failed."
     }
   ]
 }
@@ -349,7 +405,6 @@ Hayulo 0.1 seed intentionally leaves these for future work:
 - `Option` and `Result`
 - `match`
 - module imports
-- formatter
 - package manager
 - effects and permissions
 - app framework libraries

@@ -1,0 +1,5 @@
+module failing_test
+
+test "failure shape" {
+  expect 1 == 2
+}

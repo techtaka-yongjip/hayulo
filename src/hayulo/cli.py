@@ -9,7 +9,8 @@ from typing import Any
 from . import __version__
 from .api import generate_api, looks_like_api_source, parse_api_source
 from .checker import check_program
-from .diagnostics import Diagnostic, HayuloError
+from .diagnostics import TEST_SCHEMA, Diagnostic, HayuloError, diagnostic_failure_payload
+from .formatter import check_format
 from .intent import parse_top_level_intent
 from .interpreter import Interpreter
 from .lexer import Lexer
@@ -72,7 +73,7 @@ def handle_error(error: HayuloError, json_mode: bool) -> int:
 
 def handle_errors(errors: list[HayuloError], json_mode: bool) -> int:
     if json_mode:
-        emit_json({"status": "failed", "errors": [error.diagnostic.to_dict() for error in errors]})
+        emit_json(diagnostic_failure_payload(errors))
     else:
         for error in errors:
             d = error.diagnostic
@@ -88,6 +89,43 @@ def handle_errors(errors: list[HayuloError], json_mode: bool) -> int:
             for suggestion in d.suggestions:
                 print(f"  hint: {suggestion}", file=sys.stderr)
     return 1
+
+
+def test_json_payload(
+    *,
+    status: str,
+    file: str | None,
+    passed: int,
+    failed: int,
+    tests: list[dict[str, Any]],
+    output: list[str],
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    failures = [
+        {
+            "test": result["name"],
+            "file": file,
+            "line": result.get("line"),
+            "message": result.get("error", "Test failed."),
+        }
+        for result in tests
+        if not result.get("passed")
+    ]
+    payload: dict[str, Any] = {
+        "schema": TEST_SCHEMA,
+        "status": status,
+        "summary": {"passed": passed, "failed": failed},
+        "failures": failures,
+        "passed": passed,
+        "failed": failed,
+        "tests": tests,
+        "output": output,
+    }
+    if file is not None:
+        payload["file"] = file
+    if extra:
+        payload.update(extra)
+    return payload
 
 
 def check_file_payload(path: Path, *, filename: str | None = None) -> dict[str, Any]:
@@ -213,16 +251,7 @@ def cmd_test(args: argparse.Namespace) -> int:
     status = "ok" if failed == 0 else "failed"
 
     if args.json:
-        emit_json(
-            {
-                "status": status,
-                "file": str(path),
-                "passed": passed,
-                "failed": failed,
-                "tests": [result.to_dict() for result in results],
-                "output": interpreter.output,
-            }
-        )
+        emit_json(test_json_payload(status=status, file=str(path), passed=passed, failed=failed, tests=[result.to_dict() for result in results], output=interpreter.output))
     else:
         for result in results:
             marker = "PASS" if result.passed else "FAIL"
@@ -241,14 +270,7 @@ def test_file_payload(path: Path, *, filename: str | None = None) -> dict[str, A
     results = interpreter.run_tests()
     passed = sum(1 for result in results if result.passed)
     failed = len(results) - passed
-    return {
-        "status": "ok" if failed == 0 else "failed",
-        "file": filename,
-        "passed": passed,
-        "failed": failed,
-        "tests": [result.to_dict() for result in results],
-        "output": interpreter.output,
-    }
+    return test_json_payload(status="ok" if failed == 0 else "failed", file=filename, passed=passed, failed=failed, tests=[result.to_dict() for result in results], output=interpreter.output)
 
 
 def cmd_test_project(target: Path, json_mode: bool) -> int:
@@ -273,11 +295,14 @@ def cmd_test_project(target: Path, json_mode: bool) -> int:
     passed = sum(file["passed"] for file in files)
     failed = sum(file["failed"] for file in files)
     payload = {
+        "schema": TEST_SCHEMA,
         "status": "ok" if failed == 0 else "failed",
         "kind": "project-test",
         "root": str(config.root),
         "config": str(config.config_path),
         "project": {"name": config.name, "version": config.version},
+        "summary": {"passed": passed, "failed": failed},
+        "failures": [failure for file in files for failure in file["failures"]],
         "passed": passed,
         "failed": failed,
         "files": files,
@@ -326,6 +351,176 @@ def cmd_build(args: argparse.Namespace) -> int:
         print("  npm test")
         print("  npm start")
     return 0
+
+
+def cmd_format(args: argparse.Namespace) -> int:
+    try:
+        config, files = format_file_targets(Path(args.target) if args.target else Path("."))
+        results: list[dict[str, Any]] = []
+        changed: list[Path] = []
+        for path in files:
+            source = read_source(path)
+            result = check_format(source)
+            label = project_relative(config, path) if config else str(path)
+            if result.changed:
+                changed.append(path)
+                if not args.check:
+                    write_source(path, result.source)
+            results.append({"file": label, "changed": result.changed})
+
+        if args.check and changed:
+            labels = [project_relative(config, path) if config else str(path) for path in changed]
+            raise HayuloError(
+                Diagnostic(
+                    code="format.required",
+                    message="Hayulo source is not formatted.",
+                    file=labels[0],
+                    details={"files": labels},
+                    suggestions=["Run hayulo format on the target."],
+                )
+            )
+    except HayuloError as error:
+        return handle_error(error, args.json)
+
+    payload = {
+        "status": "ok",
+        "kind": "format",
+        "mode": "check" if args.check else "write",
+        "checked": len(results),
+        "changed": sum(1 for result in results if result["changed"]),
+        "files": results,
+    }
+    if args.json:
+        emit_json(payload)
+    elif args.check:
+        print(f"format ok: {len(results)} files")
+    else:
+        print(f"formatted {payload['changed']} of {len(results)} files")
+    return 0
+
+
+def format_file_targets(target: Path) -> tuple[ProjectConfig | None, list[Path]]:
+    if target.is_dir():
+        config = load_project(target)
+        return config, project_files(config)
+    if target.exists() and target.suffix != ".hayulo":
+        raise HayuloError(
+            Diagnostic(
+                code="format.unsupported_target",
+                message=f"Hayulo format only supports .hayulo files or project directories: {target}.",
+                file=str(target),
+                suggestions=["Pass a .hayulo source file or a directory containing hayulo.toml."],
+            )
+        )
+    return None, [target]
+
+
+def write_source(path: Path, source: str) -> None:
+    try:
+        path.write_text(source, encoding="utf-8")
+    except OSError as exc:
+        details: dict[str, Any] = {}
+        if exc.errno is not None:
+            details["errno"] = exc.errno
+        raise HayuloError(
+            Diagnostic(
+                code="file_write_failed",
+                message=f"Could not write Hayulo source file: {exc.strerror or exc}.",
+                file=str(path),
+                details=details,
+                suggestions=["Check file permissions and try again."],
+            )
+        ) from exc
+
+
+def cmd_summarize(args: argparse.Namespace) -> int:
+    target = Path(args.target) if args.target else Path(".")
+    try:
+        payload = summarize_target(target)
+    except HayuloError as error:
+        return handle_error(error, args.json)
+
+    if args.json:
+        emit_json(payload)
+    else:
+        if payload["kind"] == "project-summary":
+            print(f"{payload['project']['name']}: {payload['totals']['files']} files")
+            print(f"functions: {payload['totals']['functions']}, tests: {payload['totals']['tests']}, routes: {payload['totals']['routes']}")
+        else:
+            print(f"{payload['file']}: {payload['kind']}")
+    return 0
+
+
+def summarize_target(target: Path) -> dict[str, Any]:
+    if target.is_dir():
+        config = load_project(target)
+        files = [summarize_file(path, filename=project_relative(config, path)) for path in project_files(config)]
+        return {
+            "status": "ok",
+            "kind": "project-summary",
+            "root": str(config.root),
+            "config": str(config.config_path),
+            "project": {"name": config.name, "version": config.version},
+            "totals": summarize_totals(files),
+            "files": files,
+        }
+    return summarize_file(target)
+
+
+def summarize_file(path: Path, *, filename: str | None = None) -> dict[str, Any]:
+    filename = filename or str(path)
+    source = read_source(path)
+    intent = parse_top_level_intent(source, filename=filename)
+    if looks_like_api_source(source):
+        spec = parse_api_source(source, filename=filename)
+        return {
+            "status": "ok",
+            "kind": "api-summary",
+            "file": filename,
+            "module": spec.module,
+            "intent": intent,
+            "app": spec.app_name,
+            "records": [
+                {"name": record.name, "fields": [field.name for field in record.fields], "line": record.line}
+                for record in spec.records.values()
+            ],
+            "routes": [
+                {"method": route.method, "path": route.path, "response_type": route.response_type, "line": route.line}
+                for route in spec.routes
+            ],
+        }
+
+    program = load_program(path, source, filename=filename)
+    check_program(program, filename=filename)
+    return {
+        "status": "ok",
+        "kind": "script-summary",
+        "file": filename,
+        "module": program.module,
+        "intent": intent,
+        "functions": [
+            {
+                "name": function.name,
+                "params": [param.name for param in function.params],
+                "return_type": function.return_type,
+                "line": function.line,
+            }
+            for function in program.functions.values()
+        ],
+        "tests": [{"name": test.name, "line": test.line} for test in program.tests],
+    }
+
+
+def summarize_totals(files: list[dict[str, Any]]) -> dict[str, int]:
+    return {
+        "files": len(files),
+        "scripts": sum(1 for file in files if file["kind"] == "script-summary"),
+        "apis": sum(1 for file in files if file["kind"] == "api-summary"),
+        "functions": sum(len(file.get("functions", [])) for file in files),
+        "tests": sum(len(file.get("tests", [])) for file in files),
+        "records": sum(len(file.get("records", [])) for file in files),
+        "routes": sum(len(file.get("routes", [])) for file in files),
+    }
 
 
 def cmd_new(args: argparse.Namespace) -> int:
@@ -444,6 +639,17 @@ def build_parser() -> argparse.ArgumentParser:
     test.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
     test.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     test.set_defaults(func=cmd_test)
+
+    fmt = sub.add_parser("format", help="format a Hayulo file or project")
+    fmt.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
+    fmt.add_argument("--check", action="store_true", help="check formatting without writing files")
+    fmt.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    fmt.set_defaults(func=cmd_format)
+
+    summarize = sub.add_parser("summarize", help="summarize a Hayulo file or project for repair loops")
+    summarize.add_argument("target", nargs="?", help="file or project directory; defaults to current project")
+    summarize.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    summarize.set_defaults(func=cmd_summarize)
 
     new = sub.add_parser("new", help="create a Hayulo project")
     new.add_argument("path")

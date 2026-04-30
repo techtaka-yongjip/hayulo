@@ -1,4 +1,22 @@
 {
+  "diagnostics": [
+    {
+      "code": "file_not_found",
+      "details": {},
+      "location": {
+        "column": null,
+        "file": "tests/fixtures/missing_file.hayulo",
+        "line": null
+      },
+      "message": "Hayulo source file not found: tests/fixtures/missing_file.hayulo.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Check the path and try again."
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": "file_not_found",
@@ -9,5 +27,6 @@
       ]
     }
   ],
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed"
 }

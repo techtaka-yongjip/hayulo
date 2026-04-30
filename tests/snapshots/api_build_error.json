@@ -1,4 +1,18 @@
 {
+  "diagnostics": [
+    {
+      "code": "api_without_routes",
+      "details": {},
+      "location": {
+        "column": null,
+        "file": "tests/fixtures/api_error.hayulo",
+        "line": null
+      },
+      "message": "API app must define at least one route.",
+      "severity": "error",
+      "suggestions": []
+    }
+  ],
   "errors": [
     {
       "code": "api_without_routes",
@@ -6,5 +20,6 @@
       "message": "API app must define at least one route."
     }
   ],
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed"
 }

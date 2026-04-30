@@ -37,11 +37,30 @@ help: Convert the text with Int.parse(value)? if it is numeric.
 
 ### JSON mode
 
-The current 0.2 prototype emits a compact failure shape:
+The current prototype emits a stable v0.1 diagnostic envelope:
 
 ```json
 {
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed",
+  "diagnostics": [
+    {
+      "code": "syntax_error",
+      "severity": "error",
+      "message": "Expected ')' after arguments.",
+      "location": {
+        "file": "examples/broken.hayulo",
+        "line": 4,
+        "column": 15
+      },
+      "details": {},
+      "suggestions": [
+        {
+          "message": "Check punctuation near this location."
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": "syntax_error",
@@ -55,41 +74,7 @@ The current 0.2 prototype emits a compact failure shape:
 }
 ```
 
-The stable diagnostic schema is planned separately. A future structured output should look closer to:
-
-```json
-{
-  "version": "hayulo.diagnostics@0.1",
-  "status": "failed",
-  "diagnostics": [
-    {
-      "code": "type.mismatch",
-      "severity": "error",
-      "message": "Expected Int but found Text.",
-      "explanation": "The function add expects both arguments to be Int values.",
-      "location": {
-        "file": "src/main.hayulo",
-        "line": 12,
-        "column": 18,
-        "end_line": 12,
-        "end_column": 21
-      },
-      "details": {
-        "expected": "Int",
-        "actual": "Text"
-      },
-      "suggestions": [
-        {
-          "kind": "convert_value",
-          "message": "Convert the Text to Int with Int.parse(value)? if the input is numeric.",
-          "safety": "requires_error_handling"
-        }
-      ],
-      "next_checks": ["hayulo test"]
-    }
-  ]
-}
-```
+The `errors` field is a compact compatibility alias for older scripts. Repair tools should use `schema` and `diagnostics`.
 
 ## Diagnostic fields
 
@@ -185,7 +170,7 @@ Test failures should also be structured:
 
 ```json
 {
-  "version": "hayulo.test@0.1",
+  "schema": "hayulo.test@0.1",
   "status": "failed",
   "summary": {
     "passed": 5,
@@ -220,6 +205,10 @@ Before adding or changing a diagnostic, ask:
 
 ## Current prototype
 
-The current seed prototype has basic JSON output. It does not yet have the full diagnostic schema described here.
+The current prototype has the first stable JSON envelopes:
 
-The roadmap is to evolve current diagnostics into a stable repair protocol over time.
+- `hayulo.diagnostics@0.1` for normal command failures
+- `hayulo.test@0.1` for test results and failing-test summaries
+- legacy `errors`, `passed`, and `failed` fields retained for compatibility
+
+The roadmap is to keep adding spans, related locations, safer suggestions, and repair hints without breaking the v0.1 fields.

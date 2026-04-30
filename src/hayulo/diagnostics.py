@@ -4,6 +4,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+DIAGNOSTIC_SCHEMA = "hayulo.diagnostics@0.1"
+TEST_SCHEMA = "hayulo.test@0.1"
+
+
 @dataclass
 class Diagnostic:
     code: str
@@ -30,6 +34,29 @@ class Diagnostic:
         if self.suggestions:
             data["suggestions"] = self.suggestions
         return data
+
+    def to_schema_dict(self, *, severity: str = "error") -> dict[str, Any]:
+        return {
+            "code": self.code,
+            "severity": severity,
+            "message": self.message,
+            "location": {
+                "file": self.file,
+                "line": self.line,
+                "column": self.column,
+            },
+            "details": self.details,
+            "suggestions": [{"message": suggestion} for suggestion in self.suggestions],
+        }
+
+
+def diagnostic_failure_payload(errors: list["HayuloError"]) -> dict[str, Any]:
+    return {
+        "schema": DIAGNOSTIC_SCHEMA,
+        "status": "failed",
+        "diagnostics": [error.diagnostic.to_schema_dict() for error in errors],
+        "errors": [error.diagnostic.to_dict() for error in errors],
+    }
 
 
 class HayuloError(Exception):

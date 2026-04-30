@@ -1,0 +1,15 @@
+module messy
+
+intent {
+  purpose: "Formatter fixture."
+  constraints: [
+    "Keep output stable."
+  ]
+}
+
+fn main() {
+  print("ok")
+  if true {
+    print("yes")
+  }
+}

@@ -1,4 +1,25 @@
 {
+  "diagnostics": [
+    {
+      "code": "syntax_error",
+      "details": {
+        "actual": "LBRACE",
+        "expected": "IDENT"
+      },
+      "location": {
+        "column": 10,
+        "file": "tests/fixtures/syntax_error.hayulo",
+        "line": 2
+      },
+      "message": "Expected parameter name.",
+      "severity": "error",
+      "suggestions": [
+        {
+          "message": "Check punctuation near this location."
+        }
+      ]
+    }
+  ],
   "errors": [
     {
       "code": "syntax_error",
@@ -15,5 +36,6 @@
       ]
     }
   ],
+  "schema": "hayulo.diagnostics@0.1",
   "status": "failed"
 }
