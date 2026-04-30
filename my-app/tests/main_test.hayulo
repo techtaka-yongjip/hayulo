@@ -1,0 +1,5 @@
+module my_app.main_test
+
+test "project test runs" {
+  expect 1 + 1 == 2
+}

@@ -1,0 +1,13 @@
+module my_app.main
+
+intent {
+  purpose: "A small Hayulo project."
+}
+
+fn greet(name: Text) -> Text {
+  return "Hello, " + name
+}
+
+fn main() {
+  print(greet("Hayulo"))
+}
