@@ -6,15 +6,55 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from . import __version__
 from .api import generate_api, looks_like_api_source, parse_api_source
-from .diagnostics import HayuloError
+from .diagnostics import Diagnostic, HayuloError
+from .intent import parse_top_level_intent
 from .interpreter import Interpreter
 from .lexer import Lexer
 from .parser import Parser
 
 
-def load_program(path: Path):
-    source = path.read_text(encoding="utf-8")
+def read_source(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        raise HayuloError(
+            Diagnostic(
+                code="file_not_found",
+                message=f"Hayulo source file not found: {path}.",
+                file=str(path),
+                suggestions=["Check the path and try again."],
+            )
+        ) from None
+    except UnicodeDecodeError as exc:
+        raise HayuloError(
+            Diagnostic(
+                code="invalid_source_encoding",
+                message="Hayulo source files must be valid UTF-8.",
+                file=str(path),
+                details={"encoding": "utf-8"},
+                suggestions=["Save the file as UTF-8 and try again."],
+            )
+        ) from exc
+    except OSError as exc:
+        details: dict[str, Any] = {}
+        if exc.errno is not None:
+            details["errno"] = exc.errno
+        raise HayuloError(
+            Diagnostic(
+                code="file_read_failed",
+                message=f"Could not read Hayulo source file: {exc.strerror or exc}.",
+                file=str(path),
+                details=details,
+                suggestions=["Check file permissions and try again."],
+            )
+        ) from exc
+
+
+def load_program(path: Path, source: str | None = None):
+    if source is None:
+        source = read_source(path)
     tokens = Lexer(source, filename=str(path)).lex()
     return Parser(tokens, filename=str(path)).parse()
 
@@ -44,8 +84,9 @@ def handle_error(error: HayuloError, json_mode: bool) -> int:
 
 def cmd_check(args: argparse.Namespace) -> int:
     path = Path(args.file)
-    source = path.read_text(encoding="utf-8")
     try:
+        source = read_source(path)
+        intent = parse_top_level_intent(source, filename=str(path))
         if looks_like_api_source(source):
             spec = parse_api_source(source, filename=str(path))
             payload = {
@@ -53,18 +94,20 @@ def cmd_check(args: argparse.Namespace) -> int:
                 "kind": "api",
                 "file": str(path),
                 "module": spec.module,
+                "intent": intent,
                 "app": spec.app_name,
                 "database": spec.database.to_dict() if spec.database else None,
                 "records": sorted(spec.records.keys()),
                 "routes": [route.to_dict() for route in spec.routes],
             }
         else:
-            program = load_program(path)
+            program = load_program(path, source)
             payload = {
                 "status": "ok",
                 "kind": "script",
                 "file": str(path),
                 "module": program.module,
+                "intent": intent,
                 "functions": sorted(program.functions.keys()),
                 "tests": [test.name for test in program.tests],
             }
@@ -140,7 +183,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     path = Path(args.file)
     out_dir = Path(args.out) if args.out else path.parent / "generated"
     try:
-        source = path.read_text(encoding="utf-8")
+        source = read_source(path)
         spec = parse_api_source(source, filename=str(path))
         files = generate_api(spec, out_dir, clean=not args.no_clean)
     except HayuloError as error:
@@ -170,6 +213,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hayulo", description="Hayulo prototype language toolchain")
+    parser.add_argument("--version", action="version", version=f"hayulo {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     check = sub.add_parser("check", help="parse and validate a Hayulo file")

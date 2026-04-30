@@ -95,11 +95,58 @@ class CliTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertEqual(payload["status"], "ok")
         self.assertIn("main", payload["functions"])
+        self.assertEqual(payload["intent"]["purpose"], "Show the smallest useful Hayulo program.")
+
+    def test_check_api_json_includes_intent(self):
+        result = self.run_cli("check", str(EXAMPLES / "todo_api" / "main.hayulo"), "--json")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["kind"], "api")
+        self.assertEqual(payload["intent"]["purpose"], "Show Hayulo's first concrete target: AI-friendly REST API generation.")
+
+    def test_check_json_without_intent_uses_null(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".hayulo", delete=False) as tmp:
+            tmp.write("module no_intent\nfn main() {\n  return 1\n}\n")
+            path = tmp.name
+        try:
+            result = self.run_cli("check", path, "--json")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            payload = json.loads(result.stdout)
+            self.assertIsNone(payload["intent"])
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_version(self):
+        result = self.run_cli("--version")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, "hayulo 0.2.0\n")
 
     def test_run_hello(self):
         result = self.run_cli("run", str(EXAMPLES / "hello.hayulo"))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Hello, human", result.stdout)
+
+    def test_missing_file_json(self):
+        result = self.run_cli("check", "tests/fixtures/missing_file.hayulo", "--json")
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["errors"][0]["code"], "file_not_found")
+
+    def test_runtime_error_json_has_no_traceback(self):
+        result = self.run_cli("run", "tests/fixtures/runtime_error.hayulo", "--json")
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["errors"][0]["code"], "unknown_function")
+
+    def test_api_build_error_json_has_no_traceback(self):
+        result = self.run_cli("build", "tests/fixtures/api_error.hayulo", "--json")
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("Traceback", result.stderr + result.stdout)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["errors"][0]["code"], "api_without_routes")
 
     def test_syntax_error_json(self):
         with tempfile.NamedTemporaryFile("w", suffix=".hayulo", delete=False) as tmp:

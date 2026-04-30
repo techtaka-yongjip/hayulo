@@ -1,0 +1,5 @@
+module runtime_error
+
+fn main() {
+  missing()
+}

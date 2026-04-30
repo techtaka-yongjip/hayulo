@@ -123,6 +123,7 @@ curl http://localhost:3000/todos
 python -m venv .venv
 . .venv/bin/activate
 pip install -e .
+hayulo --version
 hayulo run examples/hello.hayulo
 hayulo test examples/hello.hayulo
 hayulo check examples/hello.hayulo --json
@@ -141,6 +142,7 @@ PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
 ## Commands
 
 ```bash
+hayulo --version
 hayulo run <file.hayulo>
 hayulo test <file.hayulo>
 hayulo check <file.hayulo>
@@ -179,7 +181,7 @@ hayulo-lang/
   PROJECT_CHARTER.md         mission, values, and scope
 ```
 
-## Founding documents
+## Project documents
 
 Start here:
 

@@ -1,0 +1,10 @@
+{
+  "errors": [
+    {
+      "code": "api_without_routes",
+      "file": "tests/fixtures/api_error.hayulo",
+      "message": "API app must define at least one route."
+    }
+  ],
+  "status": "failed"
+}

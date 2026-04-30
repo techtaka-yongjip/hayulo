@@ -1,0 +1,13 @@
+{
+  "errors": [
+    {
+      "code": "file_not_found",
+      "file": "tests/fixtures/missing_file.hayulo",
+      "message": "Hayulo source file not found: tests/fixtures/missing_file.hayulo.",
+      "suggestions": [
+        "Check the path and try again."
+      ]
+    }
+  ],
+  "status": "failed"
+}

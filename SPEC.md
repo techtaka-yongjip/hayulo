@@ -72,7 +72,7 @@ intent {
 }
 ```
 
-In the current prototype, intent blocks are skipped during execution. Future compilers should expose them to diagnostics, documentation, refactoring tools, and AI repair systems.
+In the current prototype, intent blocks are skipped during execution and exposed by `hayulo check --json` as metadata. Future compilers should also expose them to documentation, refactoring tools, and AI repair systems.
 
 ## Functions
 
@@ -208,6 +208,25 @@ JSON output is machine-readable:
       "suggestions": ["Check punctuation near this location."]
     }
   ]
+}
+```
+
+Successful `hayulo check --json` output includes top-level intent metadata when present:
+
+```json
+{
+  "status": "ok",
+  "kind": "script",
+  "file": "examples/hello.hayulo",
+  "module": "hello",
+  "intent": {
+    "purpose": "Show the smallest useful Hayulo program.",
+    "constraints": [
+      "The greeting should be friendly."
+    ]
+  },
+  "functions": ["greet", "main"],
+  "tests": ["greet returns a friendly message"]
 }
 ```
 

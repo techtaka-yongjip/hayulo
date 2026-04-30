@@ -37,7 +37,25 @@ help: Convert the text with Int.parse(value)? if it is numeric.
 
 ### JSON mode
 
-Stable structured output:
+The current 0.2 prototype emits a compact failure shape:
+
+```json
+{
+  "status": "failed",
+  "errors": [
+    {
+      "code": "syntax_error",
+      "message": "Expected ')' after arguments.",
+      "file": "examples/broken.hayulo",
+      "line": 4,
+      "column": 15,
+      "suggestions": ["Check punctuation near this location."]
+    }
+  ]
+}
+```
+
+The stable diagnostic schema is planned separately. A future structured output should look closer to:
 
 ```json
 {

@@ -1,0 +1,11 @@
+module broken_api
+
+intent {
+  purpose: "Broken API fixture for diagnostic snapshots."
+}
+
+app BrokenApi {
+  type Todo = record {
+    id: Id<Todo>
+  }
+}
