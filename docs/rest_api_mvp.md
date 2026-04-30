@@ -68,6 +68,16 @@ npm start
 
 This is the 0.7 app-building workflow. `hayulo serve` is deferred; the supported serve path is the generated Node server through `npm start` inside the generated directory. This keeps the Hayulo CLI focused on checking and generation while the runtime target is still moving.
 
+API projects include a permission policy:
+
+```toml
+[permissions]
+allow = ["api.read", "api.write", "api.delete", "storage.local"]
+deny = []
+```
+
+`hayulo check` and `hayulo build` fail before generation when a route requires a permission that is missing or denied.
+
 ## Why REST APIs first?
 
 REST APIs are a strong first target because they have a predictable shape:

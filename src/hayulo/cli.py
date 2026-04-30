@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .api import generate_api, looks_like_api_source, parse_api_source
+from .api import check_api_permissions, generate_api, looks_like_api_source, parse_api_source, required_api_permissions
 from .checker import check_program
 from .diagnostics import TEST_SCHEMA, Diagnostic, HayuloError, diagnostic_failure_payload
 from .formatter import check_format
@@ -16,7 +16,7 @@ from .intent import parse_top_level_intent
 from .interpreter import Interpreter
 from .lexer import Lexer
 from .parser import Parser
-from .project import ProjectConfig, load_project, project_files, project_name_to_module
+from .project import ProjectConfig, find_project_root, load_project, project_files, project_name_to_module, read_project_config
 
 
 def read_source(path: Path) -> str:
@@ -129,18 +129,22 @@ def test_json_payload(
     return payload
 
 
-def check_file_payload(path: Path, *, filename: str | None = None) -> dict[str, Any]:
+def check_file_payload(path: Path, *, filename: str | None = None, config: ProjectConfig | None = None) -> dict[str, Any]:
     filename = filename or str(path)
     source = read_source(path)
     intent = parse_top_level_intent(source, filename=filename)
     if looks_like_api_source(source):
         spec = parse_api_source(source, filename=filename)
+        config = config or project_config_for_path(path)
+        if config is not None:
+            check_api_permissions(spec, config.permissions, filename=filename)
         return {
             "status": "ok",
             "kind": "api",
             "file": filename,
             "module": spec.module,
             "intent": intent,
+            "permissions": {"required": required_api_permissions(spec)},
             "app": spec.app_name,
             "database": spec.database.to_dict() if spec.database else None,
             "records": sorted(spec.records.keys()),
@@ -192,7 +196,7 @@ def cmd_check_project(target: Path, json_mode: bool) -> int:
         for path in project_files(config):
             filename = project_relative(config, path)
             try:
-                checked.append(check_file_payload(path, filename=filename))
+                checked.append(check_file_payload(path, filename=filename, config=config))
             except HayuloError as error:
                 errors.append(error)
         if errors:
@@ -328,6 +332,9 @@ def cmd_build(args: argparse.Namespace) -> int:
     try:
         source = read_source(path)
         spec = parse_api_source(source, filename=str(path))
+        config = project_config_for_path(path)
+        if config is not None:
+            check_api_permissions(spec, config.permissions, filename=str(path))
         files = generate_api(spec, out_dir, clean=not args.no_clean)
     except HayuloError as error:
         return handle_error(error, args.json)
@@ -337,6 +344,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         "kind": "api-build",
         "file": str(path),
         "app": spec.app_name,
+        "permissions": {"required": required_api_permissions(spec)},
         "output_dir": str(out_dir),
         "generated": [file.to_dict() for file in files],
         "next_commands": [f"cd {out_dir}", "npm test", "npm start"],
@@ -621,7 +629,7 @@ def create_api_project(root: Path, *, name: str, module: str, app_name: str) -> 
         root / "hayulo.toml",
         src / "main.hayulo",
     ]
-    files[0].write_text(project_config_text(name), encoding="utf-8")
+    files[0].write_text(api_project_config_text(name), encoding="utf-8")
     files[1].write_text(project_api_main_text(module, name=name, app_name=app_name), encoding="utf-8")
     return files
 
@@ -648,6 +656,23 @@ name = {json.dumps(name)}
 version = "0.1.0"
 src = "src"
 tests = "tests"
+
+[permissions]
+allow = []
+deny = []
+"""
+
+
+def api_project_config_text(name: str) -> str:
+    return f"""[project]
+name = {json.dumps(name)}
+version = "0.1.0"
+src = "src"
+tests = "tests"
+
+[permissions]
+allow = ["api.read", "api.write", "api.delete", "storage.local"]
+deny = []
 """
 
 
@@ -741,6 +766,11 @@ def project_relative(config: ProjectConfig, path: Path) -> str:
         return path.relative_to(config.root).as_posix()
     except ValueError:
         return str(path)
+
+
+def project_config_for_path(path: Path) -> ProjectConfig | None:
+    root = find_project_root(path)
+    return read_project_config(root) if root is not None else None
 
 
 def build_parser() -> argparse.ArgumentParser:

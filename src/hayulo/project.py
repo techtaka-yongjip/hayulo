@@ -21,10 +21,17 @@ class ProjectConfig:
     source_dirs: list[Path]
     test_dirs: list[Path]
     excludes: set[Path]
+    permissions: "ProjectPermissions"
 
     @property
     def config_path(self) -> Path:
         return self.root / CONFIG_NAME
+
+
+@dataclass(frozen=True)
+class ProjectPermissions:
+    allow: frozenset[str]
+    deny: frozenset[str]
 
 
 def load_project(start: Path) -> ProjectConfig:
@@ -60,7 +67,8 @@ def read_project_config(root: Path) -> ProjectConfig:
     source_dirs = paths_from_value(project.get("src", "src"), root, path, "src")
     test_dirs = paths_from_value(project.get("tests", "tests"), root, path, "tests")
     excludes = set(paths_from_value(project.get("exclude", []), root, path, "exclude"))
-    return ProjectConfig(root=root, name=name, version=version, source_dirs=source_dirs, test_dirs=test_dirs, excludes=excludes)
+    permissions = permissions_from_section(data.get("permissions", {}), path)
+    return ProjectConfig(root=root, name=name, version=version, source_dirs=source_dirs, test_dirs=test_dirs, excludes=excludes, permissions=permissions)
 
 
 def parse_hayulo_toml(path: Path) -> dict[str, dict[str, Any]]:
@@ -127,6 +135,33 @@ def paths_from_value(value: Any, root: Path, path: Path, key: str) -> list[Path]
     else:
         raise HayuloError(Diagnostic(code="project.invalid_config", message=f"Project field {key!r} must be a string or array of strings.", file=str(path)))
     return [(root / item).resolve() for item in values]
+
+
+def permissions_from_section(section: dict[str, Any], path: Path) -> ProjectPermissions:
+    allowed_keys = {"allow", "deny"}
+    for key in section:
+        if key not in allowed_keys:
+            raise HayuloError(Diagnostic(code="project.invalid_config", message=f"Unknown permissions field {key!r}.", file=str(path), suggestions=["Use [permissions] allow = [...] and deny = [...]."]))
+    allow = permission_set_from_value(section.get("allow", []), path, "allow")
+    deny = permission_set_from_value(section.get("deny", []), path, "deny")
+    return ProjectPermissions(allow=frozenset(allow), deny=frozenset(deny))
+
+
+def permission_set_from_value(value: Any, path: Path, key: str) -> set[str]:
+    if isinstance(value, str):
+        values = [value]
+    elif isinstance(value, list) and all(isinstance(item, str) for item in value):
+        values = value
+    else:
+        raise HayuloError(Diagnostic(code="project.invalid_config", message=f"Permissions field {key!r} must be a string or array of strings.", file=str(path)))
+    invalid = [item for item in values if not is_permission_name(item)]
+    if invalid:
+        raise HayuloError(Diagnostic(code="project.invalid_permission", message=f"Invalid permission name: {invalid[0]!r}.", file=str(path), details={"permission": invalid[0]}, suggestions=["Use lowercase dotted names such as api.read or storage.local."]))
+    return set(values)
+
+
+def is_permission_name(value: str) -> bool:
+    return bool(re.fullmatch(r"[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*", value))
 
 
 def project_files(config: ProjectConfig, *, include_tests: bool = True) -> list[Path]:

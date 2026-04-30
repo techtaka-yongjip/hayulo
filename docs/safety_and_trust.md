@@ -73,28 +73,31 @@ The compiler can then compare required effects against project policy.
 
 ## Permissions
 
-Project permissions should live in `hayulo.toml`:
+Project permissions live in `hayulo.toml` in the current prototype:
 
 ```toml
 [permissions]
 allow = [
-  "files.read",
-  "files.write",
-  "network.read"
+  "api.read",
+  "api.write",
+  "storage.local"
 ]
 
 deny = [
-  "files.delete",
-  "money.spend"
-]
-
-require_approval = [
-  "email.send",
-  "irreversible_action"
+  "api.delete"
 ]
 ```
 
-Generated code should not be allowed to silently change permissions without review.
+Hayulo 0.8 checks generated REST API behavior against this allow/deny policy:
+
+- `api.read`: required by `GET` routes
+- `api.write`: required by `POST`, `PUT`, and `PATCH` routes
+- `api.delete`: required by `DELETE` routes
+- `storage.local`: required by the MVP generated server's local JSON file store
+
+If required behavior is not listed in `allow`, `hayulo check` and `hayulo build` fail with `permission.missing`. If required behavior is listed in `deny`, they fail with `permission.denied`. The deny-list takes precedence so a project can explicitly block risky generated behavior even if a broad allow-list is present.
+
+Generated code should not be allowed to silently change permissions without review. Future versions may add `require_approval`, but 0.8 only implements `allow` and `deny`.
 
 ## Approval gates
 
@@ -235,4 +238,4 @@ Hayulo should eventually publish a formal threat model for:
 
 The current seed interpreter is experimental and not production-ready. It should not be used to run untrusted code in sensitive environments.
 
-The safety model described here is the intended direction, not the current implementation.
+The full safety model described here is the intended direction. The current implemented slice is project-level allow/deny enforcement for generated REST API actions.

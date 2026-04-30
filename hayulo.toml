@@ -4,3 +4,7 @@ version = "0.5.0"
 src = "examples"
 tests = "examples"
 exclude = ["examples/future_todo_api.hayulo"]
+
+[permissions]
+allow = ["api.read", "api.write", "api.delete", "storage.local"]
+deny = []

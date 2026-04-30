@@ -27,6 +27,7 @@ Hayulo currently supports:
 - `hayulo new`, project-wide `hayulo check`, and project-wide `hayulo test`
 - `hayulo format` and `hayulo format --check`
 - `hayulo summarize --json` for repair-loop context
+- project permission checks for generated REST API actions
 - JSON diagnostics with stable `hayulo.diagnostics@0.1` fields plus the legacy `errors` alias
 - API `app` blocks
 - API `type ... = record` declarations

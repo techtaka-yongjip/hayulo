@@ -107,6 +107,9 @@ type.invalid_index_target
 type.not_iterable
 record.unknown_field
 record.invalid_field_target
+permission.missing
+permission.denied
+project.invalid_permission
 ```
 
 Existing parser, runtime, and API diagnostics still include earlier prototype codes. Those should be migrated into namespaces before the diagnostic schema is frozen.
@@ -125,6 +128,16 @@ package.version_conflict
 ```
 
 Diagnostic codes should be treated as public API once documented. Once external tools depend on a code, it should not be renamed casually.
+
+## Permission diagnostics
+
+Hayulo 0.8 adds stable preview diagnostics for generated API permission checks:
+
+- `permission.missing`: an API source requires behavior that is not present in `[permissions].allow`
+- `permission.denied`: an API source requires behavior explicitly listed in `[permissions].deny`
+- `project.invalid_permission`: `hayulo.toml` contains a permission name that is not lowercase dotted syntax
+
+Permission diagnostics include `details.permission` and the relevant allow/deny/required lists so repair tools can decide whether to remove behavior or ask the human to update policy.
 
 ## Suggestions must be safe
 

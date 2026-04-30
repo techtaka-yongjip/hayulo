@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .diagnostics import Diagnostic, HayuloError, HayuloSyntaxError
+from .project import ProjectPermissions
 
 API_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 BUILTIN_TYPES = {"Text", "Int", "Float", "Bool", "Time", "Email", "Status", "Any"}
@@ -424,6 +425,47 @@ def infer_action(route: ApiRoute) -> str:
     if route.method == "DELETE":
         return "delete"
     return "not_implemented"
+
+
+def required_api_permissions(spec: ApiSpec) -> list[str]:
+    required = {"storage.local"}
+    for route in spec.routes:
+        if route.method == "GET":
+            required.add("api.read")
+        elif route.method in {"POST", "PUT", "PATCH"}:
+            required.add("api.write")
+        elif route.method == "DELETE":
+            required.add("api.delete")
+    return sorted(required)
+
+
+def check_api_permissions(spec: ApiSpec, permissions: ProjectPermissions, filename: str | None = None) -> None:
+    required = required_api_permissions(spec)
+    denied = sorted(set(required) & permissions.deny)
+    if denied:
+        permission = denied[0]
+        raise HayuloApiError(
+            Diagnostic(
+                code="permission.denied",
+                message=f"Project deny-list blocks required permission {permission!r}.",
+                file=filename,
+                details={"permission": permission, "required": required, "deny": sorted(permissions.deny)},
+                suggestions=["Remove the denied API action or update hayulo.toml if this behavior is intentional."],
+            )
+        )
+
+    missing = sorted(set(required) - permissions.allow)
+    if missing:
+        permission = missing[0]
+        raise HayuloApiError(
+            Diagnostic(
+                code="permission.missing",
+                message=f"Project is missing required permission {permission!r}.",
+                file=filename,
+                details={"permission": permission, "required": required, "allow": sorted(permissions.allow)},
+                suggestions=[f"Add {permission!r} to [permissions].allow in hayulo.toml if this generated behavior is intended."],
+            )
+        )
 
 
 def openapi_type(type_name: str) -> dict[str, Any]:

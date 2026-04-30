@@ -21,6 +21,10 @@ name = "my-app"
 version = "0.1.0"
 src = "src"
 tests = "tests"
+
+[permissions]
+allow = []
+deny = []
 ```
 
 The supported project fields are:
@@ -30,6 +34,10 @@ The supported project fields are:
 - `src`: source directory path or array of paths
 - `tests`: test directory path or array of paths
 - `exclude`: optional array of files or directories to skip
+- `[permissions].allow`: optional array of allowed generated effects
+- `[permissions].deny`: optional array of denied generated effects
+
+API generation checks `allow` and `deny` before building generated code. The current API permissions are `api.read`, `api.write`, `api.delete`, and `storage.local`.
 
 ## Creating a Project
 
