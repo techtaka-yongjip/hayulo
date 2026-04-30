@@ -20,6 +20,8 @@ Hayulo currently supports:
 - `module` declarations
 - `intent` blocks as source metadata
 - script functions, variables, conditionals, `return`, `test`, and `expect`
+- list literals, map literals, indexing, and `for` loops
+- basic record values with field access
 - JSON diagnostics from the CLI
 - API `app` blocks
 - API `type ... = record` declarations
@@ -126,6 +128,7 @@ pip install -e .
 hayulo --version
 hayulo run examples/hello.hayulo
 hayulo test examples/hello.hayulo
+hayulo run examples/data_core.hayulo
 hayulo check examples/hello.hayulo --json
 hayulo check examples/todo_api/main.hayulo --json
 hayulo build examples/todo_api/main.hayulo
@@ -149,6 +152,30 @@ hayulo check <file.hayulo>
 hayulo check <file.hayulo> --json
 hayulo build <api-file.hayulo>
 hayulo build <api-file.hayulo> --out generated --json
+```
+
+## Core data example
+
+```hayulo
+fn total(scores: List<Int>) -> Int {
+  sum = 0
+  for score in scores {
+    sum = sum + score
+  }
+  return sum
+}
+
+fn main() {
+  user = User {
+    name: "Ada",
+    scores: [90, 95, 100],
+    labels: {"team": "language"}
+  }
+
+  print(user.name)
+  print(user.labels["team"])
+  print(total(user.scores))
+}
 ```
 
 ## Why Hayulo?

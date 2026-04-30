@@ -13,6 +13,8 @@ KEYWORDS = {
     "return",
     "if",
     "else",
+    "for",
+    "in",
     "true",
     "false",
     "and",

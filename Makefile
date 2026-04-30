@@ -9,11 +9,14 @@ test:
 
 check:
 	$(ENV) $(PYTHON) -m hayulo check examples/hello.hayulo --json
+	$(ENV) $(PYTHON) -m hayulo check examples/data_core.hayulo --json
 	$(ENV) $(PYTHON) -m hayulo check examples/todo_api/main.hayulo --json
 
 examples:
 	$(ENV) $(PYTHON) -m hayulo run examples/hello.hayulo
 	$(ENV) $(PYTHON) -m hayulo test examples/hello.hayulo
+	$(ENV) $(PYTHON) -m hayulo run examples/data_core.hayulo
+	$(ENV) $(PYTHON) -m hayulo test examples/data_core.hayulo
 
 api-build:
 	$(ENV) $(PYTHON) -m hayulo build examples/todo_api/main.hayulo

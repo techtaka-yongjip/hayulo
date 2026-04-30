@@ -10,10 +10,16 @@ from .ast import (
     Expect,
     Expr,
     ExprStmt,
+    FieldAccess,
+    For,
     FunctionDecl,
     If,
+    Index,
+    ListLiteral,
     Literal,
+    MapLiteral,
     Program,
+    RecordLiteral,
     Return,
     Stmt,
     TestDecl,
@@ -26,6 +32,12 @@ from .diagnostics import Diagnostic, HayuloRuntimeError
 class _ReturnSignal(Exception):
     def __init__(self, value: Any):
         self.value = value
+
+
+@dataclass
+class RecordValue:
+    type_name: str
+    fields: dict[str, Any]
 
 
 @dataclass
@@ -97,7 +109,15 @@ class Interpreter:
                     "len expects exactly one argument.",
                     suggestions=["Call len(value) with a single Text or collection value."],
                 )
-            return len(args[0])
+            try:
+                return len(args[0])
+            except TypeError:
+                self._runtime_error(
+                    "invalid_len_target",
+                    "len expects Text, List, or Map.",
+                    details={"target_type": self._type_name(args[0])},
+                    suggestions=["Pass a Text, List, or Map value to len."],
+                )
 
         fn = self.program.functions.get(name)
         if fn is None:
@@ -149,6 +169,12 @@ class Interpreter:
                 self._exec_block(stmt.else_body)
             return
 
+        if isinstance(stmt, For):
+            for value in self._iterable_values(self._eval(stmt.iterable), stmt.line):
+                self._assign(stmt.name, value)
+                self._exec_block(stmt.body)
+            return
+
         if isinstance(stmt, Expect):
             value = self._eval(stmt.expr)
             if not self._truthy(value):
@@ -189,6 +215,34 @@ class Interpreter:
             left = self._eval(expr.left)
             right = self._eval(expr.right)
             return self._binary(left, expr.op, right)
+
+        if isinstance(expr, ListLiteral):
+            return [self._eval(element) for element in expr.elements]
+
+        if isinstance(expr, MapLiteral):
+            result: dict[Any, Any] = {}
+            for key_expr, value_expr in expr.entries:
+                key = self._eval(key_expr)
+                try:
+                    hash(key)
+                except TypeError:
+                    self._runtime_error(
+                        "invalid_map_key",
+                        "Map keys must be hashable values.",
+                        details={"key": repr(key)},
+                        suggestions=["Use Text, Int, Float, or Bool values as map keys."],
+                    )
+                result[key] = self._eval(value_expr)
+            return result
+
+        if isinstance(expr, Index):
+            return self._index_value(self._eval(expr.target), self._eval(expr.index), expr.line)
+
+        if isinstance(expr, FieldAccess):
+            return self._field_value(self._eval(expr.target), expr.field, expr.line)
+
+        if isinstance(expr, RecordLiteral):
+            return RecordValue(expr.type_name, {name: self._eval(value) for name, value in expr.fields})
 
         if isinstance(expr, Call):
             args = [self._eval(arg) for arg in expr.args]
@@ -246,6 +300,78 @@ class Interpreter:
 
         self._runtime_error("unknown_operator", f"Unknown operator {op!r}.")
 
+    def _index_value(self, target: Any, index: Any, line: int) -> Any:
+        if isinstance(target, list):
+            if not isinstance(index, int):
+                self._runtime_error(
+                    "invalid_index_type",
+                    "List indexes must be Int values.",
+                    details={"index_type": type(index).__name__},
+                    suggestions=["Use an Int index such as values[0]."],
+                    line=line,
+                )
+            if index < 0 or index >= len(target):
+                self._runtime_error(
+                    "index_out_of_range",
+                    f"List index {index} is out of range.",
+                    details={"index": index, "length": len(target)},
+                    suggestions=["Check len(value) before indexing."],
+                    line=line,
+                )
+            return target[index]
+
+        if isinstance(target, dict):
+            if index not in target:
+                self._runtime_error(
+                    "missing_map_key",
+                    f"Map key {index!r} was not found.",
+                    details={"key": repr(index)},
+                    suggestions=["Check that the key exists before indexing the map."],
+                    line=line,
+                )
+            return target[index]
+
+        self._runtime_error(
+            "invalid_index_target",
+            "Only lists and maps can be indexed.",
+            details={"target_type": self._type_name(target)},
+            suggestions=["Index a list with an Int or a map with an existing key."],
+            line=line,
+        )
+
+    def _field_value(self, target: Any, field: str, line: int) -> Any:
+        if isinstance(target, RecordValue):
+            if field not in target.fields:
+                self._runtime_error(
+                    "unknown_field",
+                    f"Record {target.type_name} has no field {field!r}.",
+                    details={"record": target.type_name, "field": field},
+                    suggestions=["Check the record field name."],
+                    line=line,
+                )
+            return target.fields[field]
+
+        self._runtime_error(
+            "invalid_field_target",
+            "Only records support field access in the current prototype.",
+            details={"target_type": self._type_name(target), "field": field},
+            suggestions=["Construct a record value before accessing its fields."],
+            line=line,
+        )
+
+    def _iterable_values(self, value: Any, line: int) -> list[Any]:
+        if isinstance(value, list):
+            return value
+        if isinstance(value, dict):
+            return list(value.keys())
+        self._runtime_error(
+            "not_iterable",
+            "For loops can iterate over lists and maps.",
+            details={"target_type": self._type_name(value)},
+            suggestions=["Use a list literal like [1, 2] or a map literal like {\"key\": 1}."],
+            line=line,
+        )
+
     def _lookup(self, name: str) -> Any:
         for env in reversed(self.env_stack):
             if name in env:
@@ -271,7 +397,34 @@ class Interpreter:
             return "false"
         if value is None:
             return "none"
+        if isinstance(value, list):
+            return "[" + ", ".join(self._stringify(item) for item in value) + "]"
+        if isinstance(value, dict):
+            items = [f"{self._stringify(key)}: {self._stringify(val)}" for key, val in value.items()]
+            return "{" + ", ".join(items) + "}"
+        if isinstance(value, RecordValue):
+            fields = [f"{name}: {self._stringify(val)}" for name, val in value.fields.items()]
+            return f"{value.type_name} {{" + ", ".join(fields) + "}"
         return str(value)
+
+    def _type_name(self, value: Any) -> str:
+        if isinstance(value, bool):
+            return "Bool"
+        if isinstance(value, int):
+            return "Int"
+        if isinstance(value, float):
+            return "Float"
+        if isinstance(value, str):
+            return "Text"
+        if isinstance(value, list):
+            return "List"
+        if isinstance(value, dict):
+            return "Map"
+        if isinstance(value, RecordValue):
+            return value.type_name
+        if value is None:
+            return "None"
+        return type(value).__name__
 
     def _runtime_error(
         self,

@@ -1,0 +1,50 @@
+module data_core
+
+intent {
+  purpose: "Demonstrate lists, maps, for loops, and basic records."
+}
+
+fn total(scores: List<Int>) -> Int {
+  sum = 0
+  for score in scores {
+    sum = sum + score
+  }
+  return sum
+}
+
+fn profile() {
+  user = User {
+    name: "Ada",
+    scores: [90, 95, 100],
+    labels: {"role": "admin", "team": "language"}
+  }
+  return user
+}
+
+fn main() {
+  user = profile()
+  print(user.name)
+  print(user.labels["team"])
+  print(total(user.scores))
+}
+
+test "lists can be indexed" {
+  values = [10, 20, 30]
+  expect values[0] == 10
+  expect values[2] == 30
+}
+
+test "maps can be indexed" {
+  scores = {"ada": 99, "grace": 95}
+  expect scores["ada"] == 99
+}
+
+test "for loops sum list values" {
+  expect total([1, 2, 3, 4]) == 10
+}
+
+test "records expose fields" {
+  user = profile()
+  expect user.name == "Ada"
+  expect user.labels["role"] == "admin"
+}

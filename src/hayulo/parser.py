@@ -7,10 +7,16 @@ from .ast import (
     Expect,
     Expr,
     ExprStmt,
+    FieldAccess,
+    For,
     FunctionDecl,
     If,
+    Index,
+    ListLiteral,
     Literal,
+    MapLiteral,
     Program,
+    RecordLiteral,
     Return,
     Stmt,
     TestDecl,
@@ -141,6 +147,14 @@ class Parser:
                     else_body = self._block()
             return If(condition, then_body, else_body)
 
+        if self._match("FOR"):
+            line = self._previous().line
+            name = self._consume("IDENT", "Expected loop variable name after 'for'.")
+            self._consume("IN", "Expected 'in' after loop variable.")
+            iterable = self._expression()
+            body = self._block()
+            return For(name.value, iterable, body, line=line)
+
         if self._match("EXPECT"):
             line = self._previous().line
             return Expect(self._expression(), line=line)
@@ -213,15 +227,50 @@ class Parser:
 
     def _call(self) -> Expr:
         expr = self._primary()
-        if isinstance(expr, Variable) and self._match("LPAREN"):
-            args: list[Expr] = []
-            if not self._check("RPAREN"):
-                while True:
-                    args.append(self._expression())
-                    if not self._match("COMMA"):
-                        break
-            self._consume("RPAREN", "Expected ')' after arguments.")
-            return Call(expr.name, args, line=self._previous().line)
+
+        while True:
+            if self._match("LPAREN"):
+                if not isinstance(expr, Variable):
+                    tok = self._previous()
+                    raise HayuloSyntaxError(
+                        Diagnostic(
+                            code="invalid_call_target",
+                            message="Only named functions can be called in the current prototype.",
+                            file=self.filename,
+                            line=tok.line,
+                            column=tok.column,
+                            suggestions=["Call a function by name, such as greet(\"Ada\")."],
+                        )
+                    )
+                args: list[Expr] = []
+                if not self._check("RPAREN"):
+                    while True:
+                        args.append(self._expression())
+                        if not self._match("COMMA"):
+                            break
+                self._consume("RPAREN", "Expected ')' after arguments.")
+                expr = Call(expr.name, args, line=self._previous().line)
+                continue
+
+            if self._match("LBRACKET"):
+                line = self._previous().line
+                index = self._expression()
+                self._consume("RBRACKET", "Expected ']' after index expression.")
+                expr = Index(expr, index, line=line)
+                continue
+
+            if self._match("DOT"):
+                dot = self._previous()
+                field = self._consume("IDENT", "Expected field name after '.'.")
+                expr = FieldAccess(expr, field.value, line=dot.line)
+                continue
+
+            if isinstance(expr, Variable) and self._looks_like_record_literal():
+                expr = self._record_literal(expr.name)
+                continue
+
+            break
+
         return expr
 
     def _primary(self) -> Expr:
@@ -235,6 +284,10 @@ class Parser:
             return Literal(True)
         if self._match("FALSE"):
             return Literal(False)
+        if self._check("LBRACKET"):
+            return self._list_literal()
+        if self._check("LBRACE"):
+            return self._map_literal()
         if self._match("IDENT"):
             return Variable(self._previous().value)
         if self._match("LPAREN"):
@@ -252,6 +305,70 @@ class Parser:
                 column=tok.column,
                 suggestions=["Use a literal, variable, function call, or parenthesized expression here."],
             )
+        )
+
+    def _list_literal(self) -> ListLiteral:
+        self._consume("LBRACKET", "Expected '[' to start list literal.")
+        elements: list[Expr] = []
+        if not self._check("RBRACKET"):
+            while True:
+                elements.append(self._expression())
+                if not self._match("COMMA"):
+                    break
+                if self._check("RBRACKET"):
+                    break
+        self._consume("RBRACKET", "Expected ']' after list literal.")
+        return ListLiteral(elements)
+
+    def _map_literal(self) -> MapLiteral:
+        self._consume("LBRACE", "Expected '{' to start map literal.")
+        entries: list[tuple[Expr, Expr]] = []
+        if not self._check("RBRACE"):
+            while True:
+                key = self._expression()
+                self._consume("COLON", "Expected ':' between map key and value.")
+                value = self._expression()
+                entries.append((key, value))
+                if not self._match("COMMA"):
+                    break
+                if self._check("RBRACE"):
+                    break
+        self._consume("RBRACE", "Expected '}' after map literal.")
+        return MapLiteral(entries)
+
+    def _record_literal(self, type_name: str) -> RecordLiteral:
+        brace = self._consume("LBRACE", "Expected '{' to start record literal.")
+        fields: list[tuple[str, Expr]] = []
+        seen: set[str] = set()
+        while True:
+            field = self._consume("IDENT", "Expected record field name.")
+            if field.value in seen:
+                raise HayuloSyntaxError(
+                    Diagnostic(
+                        code="duplicate_record_field",
+                        message=f"Record literal repeats field {field.value!r}.",
+                        file=self.filename,
+                        line=field.line,
+                        column=field.column,
+                        suggestions=["Remove the duplicate field or rename it."],
+                    )
+                )
+            seen.add(field.value)
+            self._consume("COLON", "Expected ':' between record field and value.")
+            fields.append((field.value, self._expression()))
+            if not self._match("COMMA"):
+                break
+            if self._check("RBRACE"):
+                break
+        self._consume("RBRACE", "Expected '}' after record literal.")
+        return RecordLiteral(type_name, fields, line=brace.line)
+
+    def _looks_like_record_literal(self) -> bool:
+        return (
+            self.current + 2 < len(self.tokens)
+            and self.tokens[self.current].kind == "LBRACE"
+            and self.tokens[self.current + 1].kind == "IDENT"
+            and self.tokens[self.current + 2].kind == "COLON"
         )
 
     def _skip_type_until(self, *end_kinds: str) -> None:

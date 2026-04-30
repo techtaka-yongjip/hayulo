@@ -107,6 +107,9 @@ Supported values in the current prototype:
 - `Float`
 - `Text`
 - `Bool`
+- `List`
+- `Map`
+- record values
 
 Examples:
 
@@ -116,6 +119,40 @@ y = 2.5
 name = "Ada"
 active = true
 ```
+
+## Lists, maps, and indexing
+
+List literals use square brackets.
+
+```hayulo
+scores = [90, 95, 100]
+first = scores[0]
+```
+
+Map literals use braces and expression keys.
+
+```hayulo
+labels = {"role": "admin", "team": "language"}
+team = labels["team"]
+```
+
+Lists are indexed with `Int` values. Maps are indexed with existing keys.
+
+## Records
+
+The current prototype supports basic record values without static record declarations in script files.
+
+```hayulo
+user = User {
+  name: "Ada",
+  scores: [90, 95, 100]
+}
+
+print(user.name)
+print(user.scores[0])
+```
+
+Record fields are accessed with `.`.
 
 ## Operators
 
@@ -150,6 +187,19 @@ if score >= 90 {
   return "A"
 } else {
   return "B"
+}
+```
+
+For loops iterate over lists and map keys.
+
+```hayulo
+sum = 0
+for score in scores {
+  sum = sum + score
+}
+
+for key in labels {
+  print(labels[key])
 }
 ```
 
@@ -235,11 +285,8 @@ Successful `hayulo check --json` output includes top-level intent metadata when 
 Hayulo 0.1 seed intentionally leaves these for future work:
 
 - static type checker
-- records
-- lists and maps
 - `Option` and `Result`
 - `match`
-- `for`
 - module imports
 - formatter
 - package manager

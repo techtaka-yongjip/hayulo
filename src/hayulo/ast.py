@@ -54,6 +54,14 @@ class If(Stmt):
 
 
 @dataclass
+class For(Stmt):
+    name: str
+    iterable: "Expr"
+    body: list[Stmt]
+    line: int
+
+
+@dataclass
 class Expect(Stmt):
     expr: "Expr"
     line: int
@@ -84,6 +92,37 @@ class Binary(Expr):
     left: Expr
     op: str
     right: Expr
+
+
+@dataclass
+class ListLiteral(Expr):
+    elements: list[Expr]
+
+
+@dataclass
+class MapLiteral(Expr):
+    entries: list[tuple[Expr, Expr]]
+
+
+@dataclass
+class Index(Expr):
+    target: Expr
+    index: Expr
+    line: int
+
+
+@dataclass
+class FieldAccess(Expr):
+    target: Expr
+    field: str
+    line: int
+
+
+@dataclass
+class RecordLiteral(Expr):
+    type_name: str
+    fields: list[tuple[str, Expr]]
+    line: int
 
 
 @dataclass
