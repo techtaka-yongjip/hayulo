@@ -48,15 +48,19 @@
       "patterns": [
         {
           "name": "keyword.control.hayulo",
-          "match": "\\b(?:if|else|for|in|return|and|or|not)\\b"
+          "match": "\\b(?:if|else|for|in|return|and|or|not|try|match)\\b"
         },
         {
           "name": "keyword.declaration.hayulo",
-          "match": "\\b(?:module|intent|fn|test|expect|app|database|openapi|type|record|route|body|auth)\\b"
+          "match": "\\b(?:module|intent|fn|let|set|test|expect|app|database|openapi|type|record|route|body|auth|effect|action)\\b"
         },
         {
           "name": "constant.language.boolean.hayulo",
-          "match": "\\b(?:true|false)\\b"
+          "match": "\\b(?:true|false|None)\\b"
+        },
+        {
+          "name": "constant.language.variant.hayulo",
+          "match": "\\b(?:Some|Ok|Err)\\b"
         }
       ]
     },
@@ -64,7 +68,7 @@
       "patterns": [
         {
           "name": "support.type.hayulo",
-          "match": "\\b(?:Text|Int|Float|Bool|Time|Email|Status|Any|List|Id)\\b"
+          "match": "\\b(?:Text|Int|Float|Bool|Time|Email|Status|Any|List|Id|Option|Result)\\b"
         }
       ]
     },

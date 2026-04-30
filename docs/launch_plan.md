@@ -11,7 +11,7 @@ Before public launch:
 - README explains the mission clearly
 - examples run successfully
 - tests pass
-- docs explain that Hayulo has a stable 1.0 core but is not recommended for critical production systems
+- docs explain that Hayulo has a usable 2.0 draft but is not recommended for critical production systems
 - roadmap is visible
 - issues are organized
 - license is included
@@ -25,7 +25,7 @@ Before public launch:
 The first launch should be transparent:
 
 ```text
-Hayulo 1.0 is a small stable-core release for an AI-native programming language. It is still early, but the documented CLI, syntax subset, project format, diagnostics, formatter, and REST API generation workflow are stable for outside testing.
+Hayulo 2.0.0a0 is a small draft release for an AI-native programming language. It is still early, but the documented CLI, syntax subset, project format, diagnostics, formatter, and REST API generation workflow are ready for outside testing.
 ```
 
 ## Launch channels

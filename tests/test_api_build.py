@@ -34,6 +34,10 @@ class ApiBuildTests(unittest.TestCase):
         self.assertEqual(len(spec.routes), 4)
         self.assertEqual(spec.routes[0].method, "GET")
         self.assertEqual(spec.routes[1].body_type, "CreateTodo")
+        self.assertEqual(spec.routes[0].effects, ["api.read", "storage.local"])
+        self.assertEqual(spec.routes[0].action.kind, "list")
+        self.assertEqual(spec.routes[1].action.kind, "create")
+        self.assertEqual(spec.records["Todo"].fields[1].constraints, {"min": 1, "max": 200})
 
     def test_generate_api_files(self):
         spec = parse_api_source(EXAMPLE.read_text(encoding="utf-8"), filename=str(EXAMPLE))
@@ -52,6 +56,10 @@ class ApiBuildTests(unittest.TestCase):
             self.assertIn("400", openapi["paths"]["/todos"]["post"]["responses"])
             self.assertEqual(openapi["paths"]["/todos/{id}"]["delete"]["responses"]["204"]["description"], "Deleted")
             self.assertIn("ErrorResponse", openapi["components"]["schemas"])
+            ir = json.loads((out / "hayulo.ir.json").read_text(encoding="utf-8"))
+            self.assertEqual(ir["routes"][0]["action"], "list")
+            self.assertEqual(ir["routes"][1]["action"], "create")
+            self.assertEqual(ir["routes"][2]["updates"], {"done": True})
 
     def test_cli_build_json(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -60,6 +68,82 @@ class ApiBuildTests(unittest.TestCase):
             payload = json.loads(result.stdout)
             self.assertEqual(payload["status"], "ok")
             self.assertEqual(payload["app"], "TodoApi")
+
+    def test_old_inline_constraints_are_rejected(self):
+        source = """
+module old_api
+app OldApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text min 1 max 200
+  }
+  route GET "/todos" -> List<Todo> {
+    effect api.read
+    effect storage.local
+    action list Todo
+  }
+}
+"""
+        with self.assertRaises(Exception) as context:
+            parse_api_source(source, filename="<test>")
+        self.assertEqual(context.exception.diagnostic.code, "api.inline_constraints_removed")
+
+    def test_old_db_route_body_is_rejected(self):
+        source = """
+module old_api
+app OldApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text { min: 1, max: 200 }
+  }
+  route GET "/todos" -> List<Todo> {
+    return db.Todo.all()
+  }
+}
+"""
+        with self.assertRaises(Exception) as context:
+            parse_api_source(source, filename="<test>")
+        self.assertEqual(context.exception.diagnostic.code, "route.body_requires_action")
+
+    def test_old_db_assignment_route_body_is_rejected(self):
+        source = """
+module old_api
+app OldApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text { min: 1, max: 200 }
+  }
+  route PATCH "/todos/{id}" -> Todo {
+    todo = db.Todo.get(id)
+    return db.Todo.update(todo)
+  }
+}
+"""
+        with self.assertRaises(Exception) as context:
+            parse_api_source(source, filename="<test>")
+        self.assertEqual(context.exception.diagnostic.code, "route.body_requires_action")
+
+    def test_update_action_source_must_match_body_binding(self):
+        source = """
+module bad_api
+app BadApi {
+  type Todo = record {
+    id: Id<Todo>
+    title: Text { min: 1, max: 200 }
+  }
+  type UpdateTodo = record {
+    title: Text { min: 1, max: 200 }
+  }
+  route PATCH "/todos/{id}" body input: UpdateTodo -> Todo {
+    effect api.write
+    effect storage.local
+    action update Todo by id from payload
+  }
+}
+"""
+        with self.assertRaises(Exception) as context:
+            parse_api_source(source, filename="<test>")
+        self.assertEqual(context.exception.diagnostic.code, "route.action_body_mismatch")
 
     def test_new_api_project_can_check_and_build(self):
         with tempfile.TemporaryDirectory() as tmp:

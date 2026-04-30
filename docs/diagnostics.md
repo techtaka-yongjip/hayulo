@@ -30,9 +30,9 @@ Readable terminal output:
 error type.mismatch: Expected Int but found Text.
   --> src/main.hayulo:12:18
    |
-12 |   total = add(price, "5")
+12 |   let total = add(price, "5")
    |                  ^^^ expected Int
-help: Convert the text with Int.parse(value)? if it is numeric.
+help: Convert the text with Int.parse(value) and handle the Result with try.
 ```
 
 ### JSON mode
@@ -93,23 +93,31 @@ A mature diagnostic should include:
 
 ## Diagnostic code namespace
 
-Hayulo 0.4 introduces namespaced static checker diagnostics. These codes should be treated as the stable preview namespace for script checking:
+Hayulo 2.0.0a0 uses namespaced static checker diagnostics as the stable preview namespace for script checking:
 
 ```text
 name.unknown_symbol
 name.duplicate_definition
+name.reassignment_before_binding
 call.arity_mismatch
 type.argument_mismatch
 type.return_mismatch
 type.operator_mismatch
+type.invalid_try_target
+type.try_return_mismatch
 type.invalid_index
 type.invalid_index_target
 type.not_iterable
+match.non_exhaustive
 record.unknown_field
 record.invalid_field_target
 permission.missing
 permission.denied
 project.invalid_permission
+syntax.binding_requires_let_or_set
+syntax.postfix_try_removed
+route.body_requires_action
+api.inline_constraints_removed
 ```
 
 Existing parser, runtime, and API diagnostics still include earlier prototype codes. Those should be migrated into namespaces before the diagnostic schema is frozen.
@@ -131,7 +139,7 @@ Diagnostic codes should be treated as public API once documented. Once external 
 
 ## Permission diagnostics
 
-Hayulo 0.8 adds stable preview diagnostics for generated API permission checks:
+Hayulo 2.0.0a0 includes stable preview diagnostics for generated API permission checks:
 
 - `permission.missing`: an API source requires behavior that is not present in `[permissions].allow`
 - `permission.denied`: an API source requires behavior explicitly listed in `[permissions].deny`
@@ -152,7 +160,7 @@ Change the parameter type to Any.
 Better suggestion:
 
 ```text
-Convert the value to Int with Int.parse(value)? and handle the parse error.
+Convert the value to Int with Int.parse(value) and handle the Result with try.
 ```
 
 The compiler should avoid suggestions that hide the problem, weaken the type system, remove tests, or expand permissions without explanation.

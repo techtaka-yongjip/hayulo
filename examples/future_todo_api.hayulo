@@ -13,12 +13,14 @@ intent {
 type Todo = record {
   id: Id<Todo>
   owner_id: Id<User>
-  title: Text
+  title: Text { min: 1, max: 200 }
   done: Bool = false
 }
 
-service TodoApi {
+app TodoApi {
   route GET "/todos" auth user: User -> List<Todo> {
-    return db.todos.where(owner_id == user.id).all()
+    effect api.read
+    effect storage.local
+    action list Todo
   }
 }

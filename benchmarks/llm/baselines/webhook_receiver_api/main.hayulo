@@ -19,44 +19,48 @@ app WebhookReceiverBenchmarkApi {
 
   type WebhookEvent = record {
     id: Id<WebhookEvent>
-    source: Text min 1 max 120
-    event_type: Text min 1 max 120
-    payload: Text min 1 max 5000
+    source: Text { min: 1, max: 120 }
+    event_type: Text { min: 1, max: 120 }
+    payload: Text { min: 1, max: 5000 }
     processed: Bool = false
     received_at: Time = now()
   }
 
   route GET "/events" -> List<WebhookEvent> {
-    return db.WebhookEvent.all(order: received_at desc)
+    effect api.read
+    effect storage.local
+    action list WebhookEvent
   }
 
   route GET "/events/{id}" -> WebhookEvent {
-    return db.WebhookEvent.get(id)?
+    effect api.read
+    effect storage.local
+    action get WebhookEvent by id
   }
 
   route POST "/events" body input: IncomingWebhookEvent -> WebhookEvent {
-    return db.WebhookEvent.insert(WebhookEvent {
-      source: input.source
-      event_type: input.event_type
-      payload: input.payload
-    })
+    effect api.write
+    effect storage.local
+    action create WebhookEvent from input
   }
 
   route PATCH "/events/{id}" body input: UpdateWebhookEvent -> WebhookEvent {
-    event = db.WebhookEvent.get(id)?
-    return db.WebhookEvent.update(event with { processed: input.processed })
+    effect api.write
+    effect storage.local
+    action update WebhookEvent by id from input
   }
 
   route DELETE "/events/{id}" -> Status {
-    db.WebhookEvent.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete WebhookEvent by id
   }
 }
 
 type IncomingWebhookEvent = record {
-  source: Text min 1 max 120
-  event_type: Text min 1 max 120
-  payload: Text min 1 max 5000
+  source: Text { min: 1, max: 120 }
+  event_type: Text { min: 1, max: 120 }
+  payload: Text { min: 1, max: 5000 }
 }
 
 type UpdateWebhookEvent = record {

@@ -26,10 +26,10 @@ class StableContractTests(unittest.TestCase):
         )
 
     def test_version_contract(self):
-        self.assertEqual(__version__, "1.0.0")
+        self.assertEqual(__version__, "2.0.0a0")
         result = self.run_cli("--version")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "hayulo 1.0.0\n")
+        self.assertEqual(result.stdout, "hayulo 2.0.0a0\n")
 
     def test_stable_help_lists_public_commands(self):
         result = self.run_cli("--help")

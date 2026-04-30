@@ -113,7 +113,7 @@ The language is becoming more mature when:
 
 ## LLM Benchmark Loop
 
-Post-1.0 syntax and toolchain changes should be checked against the LLM benchmark suite:
+Draft syntax and toolchain changes should be checked against the LLM benchmark suite:
 
 ```sh
 make benchmark

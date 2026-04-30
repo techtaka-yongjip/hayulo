@@ -1,6 +1,6 @@
 # Standard Library Core
 
-Hayulo 1.0 has a deliberately small standard library surface.
+Hayulo 2.0.0a0 has a deliberately small standard library surface.
 
 ## Script Built-ins
 
@@ -51,6 +51,8 @@ Stable type names accepted by annotations and API generation:
 - `Any`
 - `List<T>`
 - `Id<T>`
+- `Option<T>`
+- `Result<T, E>`
 
 Script annotations are checked by the static checker where the local preview can infer enough information. API types are checked before generation.
 
@@ -60,14 +62,14 @@ Generated API servers expose stable behavior rather than a public Hayulo standar
 
 - `GET /health`
 - `GET /openapi.json`
-- CRUD-like behavior inferred from routes
+- CRUD-like behavior declared with route actions
 - generated validation for request bodies
 - generated local JSON store
 - generated smoke test
 
-These generated helpers are part of the 1.0 app-building contract, but the generated JavaScript internals are not a stable API for hand editing.
+These generated helpers are part of the current app-building preview, but the generated JavaScript internals are not a stable API for hand editing.
 
-## Not in the 1.0 Core
+## Not in the 2.0 Draft Core
 
 Not included:
 

@@ -6,7 +6,7 @@ The core idea is simple:
 
 > Humans express intent. Coding agents generate and repair code. Hayulo checks, builds, tests, and helps turn the result into useful software.
 
-Hayulo 1.0 defines a small stable core for experimentation and outside testing. It is not recommended for critical production systems yet, but the documented 1.0 CLI, syntax subset, project format, formatter, diagnostics, and generated REST API workflow are treated as stable within the 1.x line. New testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based toolchain with two tracks:
+Hayulo 2.0.0a0 is a breaking draft focused on reliable LLM generation and repair. It is not recommended for critical production systems yet, but the current CLI, syntax subset, project format, formatter, diagnostics, and generated REST API workflow are ready for repeatable experimentation. New testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based toolchain with two tracks:
 
 1. A tiny script interpreter for early language experiments.
 2. A new REST API MVP path that checks a `.hayulo` API source file and generates a runnable Node.js REST server.
@@ -15,13 +15,14 @@ The REST API path is now the main product direction: make Hayulo the easiest lan
 
 ## Status
 
-Hayulo 1.0 stable core supports:
+Hayulo 2.0 draft supports:
 
 - `module` declarations
 - `intent` blocks as source metadata
-- script functions, variables, conditionals, `return`, `test`, and `expect`
+- script functions, `let` bindings, `set` reassignment, conditionals, `return`, `test`, and `expect`
 - list literals, map literals, indexing, and `for` loops
 - basic record values with field access
+- `Option<T>`, `Result<T, E>`, `Some`, `None`, `Ok`, `Err`, `try`, and statement-form `match`
 - static checking preview for names, arity, returns, and record fields
 - `hayulo.toml` projects with `src/` and `tests/` conventions
 - `hayulo new`, project-wide `hayulo check`, and project-wide `hayulo test`
@@ -35,14 +36,15 @@ Hayulo 1.0 stable core supports:
 - API `database sqlite "..."` declarations
 - API `openapi` metadata
 - REST `route` declarations for `GET`, `POST`, `PATCH`, and `DELETE`
-- field constraints such as `min`, `max`, `unique`, and `private`
+- structured field constraints such as `{ min: 1, max: 200 }`
+- declarative route `effect` lines and one route `action`
 - `hayulo build` generation of a runnable REST API server
 - generated OpenAPI JSON
 - generated smoke tests
 
 The generated REST API uses Node.js built-ins and a local JSON file store for the MVP, so it can run without external runtime dependencies. Future versions can target TypeScript, Hono/Fastify, real SQLite migrations, auth adapters, and deployment targets.
 
-Compatibility and migration policies are documented in [Compatibility Policy](docs/compatibility.md) and [Migration Policy](docs/migration_policy.md).
+The 1.0 contract is kept as historical reference in [1.0 Stable Core Contract](docs/stable_contract_1_0.md). Compatibility and migration policies are documented in [Compatibility Policy](docs/compatibility.md) and [Migration Policy](docs/migration_policy.md).
 
 ## Script example
 
@@ -81,32 +83,38 @@ app TodoApi {
 
   type Todo = record {
     id: Id<Todo>
-    title: Text min 1 max 200
+    title: Text { min: 1, max: 200 }
     done: Bool = false
     created_at: Time = now()
   }
 
   route GET "/todos" -> List<Todo> {
-    return db.Todo.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Todo
   }
 
   route POST "/todos" body input: CreateTodo -> Todo {
-    return db.Todo.insert(Todo { title: input.title })
+    effect api.write
+    effect storage.local
+    action create Todo from input
   }
 
   route PATCH "/todos/{id}/done" -> Todo {
-    todo = db.Todo.get(id)?
-    return db.Todo.update(todo with { done: true })
+    effect api.write
+    effect storage.local
+    action update Todo by id set { done: true }
   }
 
   route DELETE "/todos/{id}" -> Status {
-    db.Todo.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete Todo by id
   }
 }
 
 type CreateTodo = record {
-  title: Text min 1 max 200
+  title: Text { min: 1, max: 200 }
 }
 ```
 
@@ -220,15 +228,15 @@ tests = "tests"
 
 ```hayulo
 fn total(scores: List<Int>) -> Int {
-  sum = 0
+  let sum = 0
   for score in scores {
-    sum = sum + score
+    set sum = sum + score
   }
   return sum
 }
 
 fn main() {
-  user = User {
+  let user = User {
     name: "Ada",
     scores: [90, 95, 100],
     labels: {"team": "language"}
@@ -276,6 +284,8 @@ hayulo-lang/
 Start here:
 
 - [Public Alpha Guide](docs/public_alpha.md)
+- [2.0 Syntax Subset](docs/syntax_subset.md)
+- [Syntax Rulebook](docs/syntax_rulebook.md)
 - [1.0 Stable Core Contract](docs/stable_contract_1_0.md)
 - [Compatibility Policy](docs/compatibility.md)
 - [Migration Policy](docs/migration_policy.md)

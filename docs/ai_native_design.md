@@ -110,9 +110,9 @@ Example:
   },
   "suggestions": [
     {
-      "kind": "use_question_operator",
-      "text": "Add ? to return the error from the current function.",
-      "patch_hint": "db.users.find(id)?"
+      "kind": "use_try",
+      "text": "Use try to return the error from the current function.",
+      "patch_hint": "try db.users.find(id)"
     },
     {
       "kind": "match_result",
@@ -128,7 +128,7 @@ Hayulo should make tests easy to write and discover.
 
 ```hayulo
 test "invoice total includes all line items" {
-  invoice = sample_invoice()
+  let invoice = sample_invoice()
   expect invoice.total() == Money.usd(120)
 }
 ```

@@ -66,7 +66,7 @@ npm test
 npm start
 ```
 
-This is the 0.7 app-building workflow. `hayulo serve` is deferred; the supported serve path is the generated Node server through `npm start` inside the generated directory. This keeps the Hayulo CLI focused on checking and generation while the runtime target is still moving.
+This is the current app-building workflow. `hayulo serve` is deferred; the supported serve path is the generated Node server through `npm start` inside the generated directory. This keeps the Hayulo CLI focused on checking and generation while the runtime target is still moving.
 
 API projects include a permission policy:
 
@@ -104,17 +104,21 @@ app TodoApi {
 
   type Todo = record {
     id: Id<Todo>
-    title: Text min 1 max 200
+    title: Text { min: 1, max: 200 }
     done: Bool = false
     created_at: Time = now()
   }
 
   route GET "/todos" -> List<Todo> {
-    return db.Todo.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Todo
   }
 
   route POST "/todos" body input: CreateTodo -> Todo {
-    return db.Todo.insert(Todo { title: input.title })
+    effect api.write
+    effect storage.local
+    action create Todo from input
   }
 }
 ```
@@ -124,10 +128,10 @@ app TodoApi {
 The MVP intentionally supports a narrow subset:
 
 - It parses API structure, not arbitrary route logic.
-- It infers common route actions such as list, create, mark done, and delete.
+- It supports declared CRUD route actions: list, get, create, update, and delete.
 - It uses a JSON file store instead of real SQLite migrations.
 - It generates JavaScript (`server.mjs`) rather than TypeScript for the first runnable prototype.
-- Auth syntax is parsed but not enforced by the generated server yet.
+- Auth syntax is not implemented in the generated server yet.
 
 These limits are acceptable for the first proof. They keep the system small enough to test and improve.
 
@@ -145,7 +149,7 @@ Generated smoke tests start the server on an ephemeral local port and check heal
 
 ## TypeScript decision
 
-TypeScript generation is explicitly deferred in 0.7. The current generator keeps `server.mjs` dependency-free so the API proof can run with only Node.js built-ins. TypeScript should be added after the API IR and OpenAPI output settle enough that generated types can be treated as a stable public artifact.
+TypeScript generation is explicitly deferred. The current generator keeps `server.mjs` dependency-free so the API proof can run with only Node.js built-ins. TypeScript should be added after the API IR and OpenAPI output settle enough that generated types can be treated as a stable public artifact.
 
 ## Next improvements
 
@@ -153,7 +157,7 @@ TypeScript generation is explicitly deferred in 0.7. The current generator keeps
 2. Generate real SQLite schema and migrations.
 3. Add auth primitives.
 4. Add `hayulo serve` once generated-server lifecycle and watch behavior are defined.
-5. Add route action diagnostics when Hayulo cannot infer behavior.
+5. Add route action diagnostics for custom actions after CRUD stabilizes.
 6. Add AI-focused suggested fixes in diagnostics.
 7. Add more examples: notes, inventory, appointments, invoices.
 

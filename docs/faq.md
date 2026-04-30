@@ -10,7 +10,7 @@ No. Hayulo is a real programming language. It is designed to work well with LLM 
 
 ## Is Hayulo production-ready?
 
-Hayulo 1.0 has a stable small core, but it is not recommended for critical production systems. Treat it as a stable experimental toolchain for outside testing, examples, and AI-assisted repair-loop research.
+Hayulo 2.0.0a0 has a usable draft core, but it is not recommended for critical production systems. Treat it as an experimental toolchain for outside testing, examples, and AI-assisted repair-loop research.
 
 ## Why create a new language?
 

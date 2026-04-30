@@ -87,12 +87,13 @@ class PublicAlphaDocsTests(unittest.TestCase):
             payload = json.loads(result.stdout)
             self.assertEqual(payload["diagnostics"][0]["code"], code)
 
-    def test_candidate_subset_marks_1_0_and_limits(self):
+    def test_candidate_subset_marks_2_0_and_limits(self):
         text = (DOCS / "syntax_subset.md").read_text(encoding="utf-8")
-        self.assertIn("Hayulo 1.0 stable syntax subset", text)
-        self.assertIn("Out of Scope for 1.0", text)
+        self.assertIn("Hayulo 2.0 Draft Syntax Subset", text)
+        self.assertIn("Out of Scope for 2.0 Draft", text)
+        self.assertIn("Rejected 1.x Syntax", text)
         self.assertIn("TypeScript generation", text)
-        self.assertIn("language-level effects enforcement", text)
+        self.assertIn("function-level effects", text)
 
     def test_syntax_rulebook_is_canonical_and_strict(self):
         text = (DOCS / "syntax_rulebook.md").read_text(encoding="utf-8")

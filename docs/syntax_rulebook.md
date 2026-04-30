@@ -1,6 +1,6 @@
 # Hayulo Syntax Philosophy and Rulebook
 
-This is the canonical rulebook for evolving Hayulo syntax after 1.0.
+This is the canonical rulebook for evolving Hayulo syntax after the 2.0 draft cleanup.
 
 Hayulo's syntax should optimize for one loop:
 
@@ -74,7 +74,7 @@ If an operation can fail, block, retry, mutate state, call the network, or touch
 
 Hayulo should not have `null`, `undefined`, implicit truthiness, or implicit numeric/string coercions.
 
-Use explicit future constructs:
+Use explicit constructs:
 
 ```hayulo
 Option<User>
@@ -124,7 +124,9 @@ Prefer:
 
 ```hayulo
 route POST "/todos" body input: CreateTodo -> Todo {
-  return db.Todo.insert(Todo { title: input.title })
+  effect api.write
+  effect storage.local
+  action create Todo from input
 }
 ```
 
@@ -134,10 +136,12 @@ Reject designs where behavior depends on file names, magic function names, impli
 
 For APIs, jobs, workflows, data schemas, and permissions, Hayulo should prefer declarative structures that the compiler can inspect.
 
-Future route actions should move toward shapes like:
+Route actions use declarative shapes:
 
 ```hayulo
 route POST "/todos" body input: CreateTodo -> Todo {
+  effect api.write
+  effect storage.local
   action create Todo from input
 }
 ```
@@ -218,11 +222,15 @@ Use these defaults unless there is a stronger documented reason.
 | Blocks | `{ ... }` |
 | Indentation | two spaces, formatter-owned |
 | Function keyword | `fn` |
+| New binding | `let name = value` |
+| Reassignment | `set name = value` |
 | Type declaration | `type Name = record { ... }` |
 | Metadata | `intent { ... }` |
 | Tests | `test "name" { expect ... }` |
-| Missing values | future `Option<T>` |
-| Recoverable errors | future `Result<T, E>` |
+| Missing values | `Option<T>` with `Some` / `None` |
+| Recoverable errors | `Result<T, E>` with `Ok` / `Err` |
+| Unwrapping | prefix `try expr` |
+| Branching on variants | statement-form `match` |
 | Effects | explicit or compiler-inferred dotted names |
 | API routes | `route METHOD "/path" ... -> Type { ... }` |
 | Comments | `// line comment` |

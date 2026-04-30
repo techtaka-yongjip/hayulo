@@ -28,7 +28,7 @@ class CoreLanguageTests(unittest.TestCase):
             """
 module sample
 fn main() {
-  values = [10, 20, 30]
+  let values = [10, 20, 30]
   print(values[0])
   print(values[2])
 }
@@ -41,7 +41,7 @@ fn main() {
             """
 module sample
 fn main() {
-  scores = {"ada": 99, "grace": 95}
+  let scores = {"ada": 99, "grace": 95}
   print(scores["ada"])
 }
 """
@@ -53,9 +53,9 @@ fn main() {
             """
 module sample
 fn main() {
-  total = 0
+  let total = 0
   for value in [1, 2, 3, 4] {
-    total = total + value
+    set total = total + value
   }
   print(total)
 }
@@ -68,10 +68,10 @@ fn main() {
             """
 module sample
 fn main() {
-  scores = {"ada": 2, "grace": 3}
-  total = 0
+  let scores = {"ada": 2, "grace": 3}
+  let total = 0
   for name in scores {
-    total = total + scores[name]
+    set total = total + scores[name]
   }
   print(total)
 }
@@ -84,7 +84,7 @@ fn main() {
             """
 module sample
 fn main() {
-  user = User { name: "Ada", scores: [90, 95] }
+  let user = User { name: "Ada", scores: [90, 95] }
   print(user.name)
   print(user.scores[1])
 }
@@ -97,7 +97,7 @@ fn main() {
             """
 module sample
 fn main() {
-  ready = true
+  let ready = true
   if ready {
     print("ok")
   }
@@ -111,7 +111,7 @@ fn main() {
             """
 module sample
 fn main() {
-  value = 1
+  let value = 1
   print(value[0])
 }
 """,
@@ -127,7 +127,7 @@ fn main() {
             """
 module sample
 fn main() {
-  user = User { name: "Ada" }
+  let user = User { name: "Ada" }
   print(user.email)
 }
 """,
@@ -169,6 +169,69 @@ fn main() {
         with self.assertRaises(Exception) as context:
             Interpreter(program, filename="<test>").run_main()
         self.assertEqual(context.exception.diagnostic.code, "invalid_len_target")
+
+    def test_option_result_try_and_match(self):
+        interpreter = run_source(
+            """
+module sample
+fn find_user(id: Int) -> Option<User> {
+  if id == 1 {
+    return Some(User { name: "Ada" })
+  }
+  return None
+}
+
+fn user_name(id: Int) -> Result<Text, Text> {
+  let user = try find_user(id)
+  return Ok(user.name)
+}
+
+fn main() {
+  let result = user_name(1)
+  match result {
+    Ok(name) => {
+      print(name)
+    }
+    Err(error) => {
+      print(error)
+    }
+  }
+}
+"""
+        )
+        self.assertEqual(interpreter.output, ["Ada"])
+
+    def test_old_bare_assignment_has_migration_diagnostic(self):
+        with self.assertRaises(Exception) as context:
+            Parser(
+                Lexer(
+                    """
+module sample
+fn main() {
+  value = 1
+}
+""",
+                    filename="<test>",
+                ).lex(),
+                filename="<test>",
+            ).parse()
+        self.assertEqual(context.exception.diagnostic.code, "syntax.binding_requires_let_or_set")
+
+    def test_postfix_try_has_migration_diagnostic(self):
+        with self.assertRaises(Exception) as context:
+            Lexer(
+                """
+module sample
+fn maybe() -> Option<Int> {
+  return Some(1)
+}
+fn main() {
+  let value = maybe()?
+}
+""",
+                filename="<test>",
+            ).lex()
+        self.assertEqual(context.exception.diagnostic.code, "syntax.postfix_try_removed")
 
 
 class CoreLanguageCliTests(unittest.TestCase):

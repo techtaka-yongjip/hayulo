@@ -5,7 +5,8 @@ This directory contains the public planning documents for Hayulo. Together they 
 ## Start here
 
 - [Public Alpha Guide](public_alpha.md): install, examples, limits, and testing workflow for outside testers.
-- [1.0 Stable Core Contract](stable_contract_1_0.md): stable CLI, syntax, project, formatter, diagnostic, and API contracts.
+- [2.0 Syntax Subset](syntax_subset.md): active draft syntax and known exclusions.
+- [1.0 Stable Core Contract](stable_contract_1_0.md): historical stable CLI, syntax, project, formatter, diagnostic, and API contracts.
 - [Vision](vision.md): the long-term picture.
 - [Philosophy](philosophy.md): the beliefs behind the language.
 - [Ambitions](ambitions.md): what Hayulo could become over time.
@@ -21,7 +22,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [LLM Generation Benchmarks](llm_benchmarks.md): task catalog and result loop for measuring agent-generated programs.
 - [CI Examples](ci.md): local and GitHub Actions quality gates.
 - [Release Checklist](release_checklist.md): commands and manual checks before tagging.
-- [Compatibility Policy](compatibility.md): how 1.x compatibility is maintained.
+- [Compatibility Policy](compatibility.md): how compatibility is documented across stable lines and draft releases.
 - [Migration Policy](migration_policy.md): how breaking changes are documented and shipped.
 - [Adoption and Ecosystem](adoption_and_ecosystem.md): how the ecosystem can grow.
 - [Launch Plan](launch_plan.md): practical open-source launch steps.
@@ -37,8 +38,8 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Project System](project_system.md): `hayulo.toml`, `src/`, `tests/`, and project-wide commands.
 - [Standard Library Plan](standard_library_plan.md): modules needed for useful apps.
 - [Diagnostics](diagnostics.md): current and future diagnostic direction.
-- [1.0 Syntax Subset](syntax_subset.md): stable syntax and known exclusions.
-- [Standard Library Core](standard_library_core.md): built-ins and generated API runtime surface in 1.0.
+- [2.0 Syntax Subset](syntax_subset.md): active draft syntax and known exclusions.
+- [Standard Library Core](standard_library_core.md): built-ins and generated API runtime surface.
 - [Repair Benchmark Results](repair_benchmarks.md): current stable diagnostic fixtures and outcomes.
 - [Editor Support](editor_support.md): minimal grammar preview and editor roadmap.
 

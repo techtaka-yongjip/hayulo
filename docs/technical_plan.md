@@ -81,7 +81,7 @@ type User = record {
 }
 
 fn main() {
-  users = [
+  let users = [
     User { name: "Ada", age: 36 },
     User { name: "Grace", age: 85 }
   ]
@@ -98,18 +98,18 @@ Goals:
 - `match`
 - `Option<T>`
 - `Result<T, E>`
-- `?` operator for early error return
+- prefix `try` for early error return
 - standard error type conventions
 
 Example target:
 
 ```hayulo
 fn find_user(id: UserId) -> Option<User> {
-  return db.users.find(id)
+  return users.find(id)
 }
 
 fn show_user(id: UserId) -> Result<Text, AppError> {
-  user = find_user(id).ok_or(AppError.not_found("user"))?
+  let user = try find_user(id)
   return Ok(user.name)
 }
 ```

@@ -18,48 +18,51 @@ app InventoryBenchmarkApi {
 
   type InventoryItem = record {
     id: Id<InventoryItem>
-    sku: Text min 1 max 80 unique
-    name: Text min 1 max 200
-    quantity: Int min 0 max 100000
-    reorder_at: Int min 0 max 100000
+    sku: Text { min: 1, max: 80, unique: true }
+    name: Text { min: 1, max: 200 }
+    quantity: Int { min: 0, max: 100000 }
+    reorder_at: Int { min: 0, max: 100000 }
     created_at: Time = now()
   }
 
   route GET "/items" -> List<InventoryItem> {
-    return db.InventoryItem.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list InventoryItem
   }
 
   route GET "/items/{id}" -> InventoryItem {
-    return db.InventoryItem.get(id)?
+    effect api.read
+    effect storage.local
+    action get InventoryItem by id
   }
 
   route POST "/items" body input: CreateInventoryItem -> InventoryItem {
-    return db.InventoryItem.insert(InventoryItem {
-      sku: input.sku
-      name: input.name
-      quantity: input.quantity
-      reorder_at: input.reorder_at
-    })
+    effect api.write
+    effect storage.local
+    action create InventoryItem from input
   }
 
   route PATCH "/items/{id}" body input: UpdateInventoryItem -> InventoryItem {
-    item = db.InventoryItem.get(id)?
-    return db.InventoryItem.update(item with { quantity: input.quantity })
+    effect api.write
+    effect storage.local
+    action update InventoryItem by id from input
   }
 
   route DELETE "/items/{id}" -> Status {
-    db.InventoryItem.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete InventoryItem by id
   }
 }
 
 type CreateInventoryItem = record {
-  sku: Text min 1 max 80
-  name: Text min 1 max 200
-  quantity: Int min 0 max 100000
-  reorder_at: Int min 0 max 100000
+  sku: Text { min: 1, max: 80 }
+  name: Text { min: 1, max: 200 }
+  quantity: Int { min: 0, max: 100000 }
+  reorder_at: Int { min: 0, max: 100000 }
 }
 
 type UpdateInventoryItem = record {
-  quantity: Int min 0 max 100000
+  quantity: Int { min: 0, max: 100000 }
 }

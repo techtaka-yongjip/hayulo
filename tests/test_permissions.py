@@ -25,25 +25,30 @@ app DeniedApi {
 
   type Todo = record {
     id: Id<Todo>
-    title: Text min 1 max 200
+    title: Text { min: 1, max: 200 }
   }
 
   route GET "/todos" -> List<Todo> {
-    return db.Todo.all()
+    effect api.read
+    effect storage.local
+    action list Todo
   }
 
   route POST "/todos" body input: CreateTodo -> Todo {
-    return db.Todo.insert(Todo { title: input.title })
+    effect api.write
+    effect storage.local
+    action create Todo from input
   }
 
   route DELETE "/todos/{id}" -> Status {
-    db.Todo.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete Todo by id
   }
 }
 
 type CreateTodo = record {
-  title: Text min 1 max 200
+  title: Text { min: 1, max: 200 }
 }
 """
 

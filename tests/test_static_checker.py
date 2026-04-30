@@ -66,7 +66,7 @@ fn main() {
             """
 module bad
 fn main() -> Int {
-  value = "not an int"
+  let value = "not an int"
   return value
 }
 """,
@@ -106,7 +106,7 @@ fn main() {
             """
 module bad
 fn main() {
-  user = User { name: "Ada" }
+  let user = User { name: "Ada" }
   print(user.email)
 }
 """,
@@ -119,7 +119,7 @@ fn main() {
             """
 module bad
 fn main() {
-  user = profile()
+  let user = profile()
   print(user.email)
 }
 fn profile() {
@@ -141,6 +141,79 @@ fn main() {
 }
 """,
             "type.not_iterable",
+        )
+
+    def test_reassignment_before_binding(self):
+        assert_static_code(
+            self,
+            """
+module bad
+fn main() {
+  set value = 1
+}
+""",
+            "name.reassignment_before_binding",
+        )
+
+    def test_duplicate_binding(self):
+        assert_static_code(
+            self,
+            """
+module bad
+fn main() {
+  let value = 1
+  let value = 2
+}
+""",
+            "name.duplicate_definition",
+        )
+
+    def test_try_requires_option_or_result(self):
+        assert_static_code(
+            self,
+            """
+module bad
+fn main() {
+  let value = try 1
+}
+""",
+            "type.invalid_try_target",
+        )
+
+    def test_try_checks_early_return_compatibility(self):
+        assert_static_code(
+            self,
+            """
+module bad
+fn maybe() -> Option<Int> {
+  return None
+}
+fn main() -> Int {
+  let value = try maybe()
+  return value
+}
+""",
+            "type.try_return_mismatch",
+        )
+
+    def test_match_requires_exhaustive_option_cases(self):
+        assert_static_code(
+            self,
+            """
+module bad
+fn maybe() -> Option<Int> {
+  return Some(1)
+}
+fn main() {
+  let value = maybe()
+  match value {
+    Some(item) => {
+      print(item)
+    }
+  }
+}
+""",
+            "match.non_exhaustive",
         )
 
 

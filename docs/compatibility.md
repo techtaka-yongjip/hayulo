@@ -1,6 +1,6 @@
 # Compatibility Policy
 
-Hayulo 1.0 stabilizes the documented core contract for the 1.x line.
+Hayulo 1.0 stabilized the documented core contract for the 1.x line. The current repository now targets the breaking `2.0.0a0` draft described in [syntax_subset.md](syntax_subset.md) and [../SPEC.md](../SPEC.md).
 
 ## Versioning
 

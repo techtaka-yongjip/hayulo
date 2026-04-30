@@ -10,7 +10,11 @@ KEYWORDS = {
     "intent",
     "fn",
     "pub",
+    "let",
+    "set",
     "return",
+    "try",
+    "match",
     "if",
     "else",
     "for",
@@ -82,6 +86,18 @@ class Lexer:
                 self._string()
                 continue
 
+            if ch == "?":
+                raise HayuloSyntaxError(
+                    Diagnostic(
+                        code="syntax.postfix_try_removed",
+                        message="Hayulo 2.0 uses prefix try instead of postfix ?.",
+                        file=self.filename,
+                        line=self.line,
+                        column=self.column,
+                        suggestions=["Use `try expression` instead of `expression?`."],
+                    )
+                )
+
             if ch.isdigit():
                 self._number()
                 continue
@@ -105,6 +121,10 @@ class Lexer:
 
         if ch == "=" and self._match("="):
             self.tokens.append(Token("EQEQ", "==", line, col))
+            return
+
+        if ch == "=" and self._match(">"):
+            self.tokens.append(Token("FAT_ARROW", "=>", line, col))
             return
 
         if ch == "!" and self._match("="):

@@ -1,25 +1,12 @@
-# Hayulo 1.0 Stable Core Specification
+# Hayulo 2.0 Draft Specification
 
 Hayulo is an experimental programming language for AI-assisted software creation.
 
-This document describes the Hayulo 1.0 stable core implemented in this repository. The core is intentionally small: it stabilizes the syntax and toolchain surface that exists today, while leaving broader language and ecosystem features for later releases.
+This document describes the current `2.0.0a0` draft implemented in this repository. The draft is intentionally breaking from the historical 1.0 line: it prefers explicit bindings, explicit recoverable errors, structured API actions, and diagnostics that coding agents can use during repair loops.
 
-## Contract status
+The historical 1.0 contract remains in [docs/stable_contract_1_0.md](docs/stable_contract_1_0.md).
 
-Hayulo 1.0 stabilizes:
-
-- the script syntax documented here
-- the REST API syntax documented in the API addendum
-- the `hayulo.toml` project format
-- formatter behavior
-- JSON diagnostic and test envelopes
-- generated REST API file names and smoke-test workflow
-- project permissions for generated API behavior
-- CLI commands listed in [docs/stable_contract_1_0.md](docs/stable_contract_1_0.md)
-
-See [docs/compatibility.md](docs/compatibility.md) and [docs/migration_policy.md](docs/migration_policy.md) for how these contracts evolve.
-
-## Design goals
+## Design Goals
 
 Hayulo should be:
 
@@ -30,7 +17,7 @@ Hayulo should be:
 5. friendly to automated repair loops
 6. suitable for real app-building as the ecosystem grows
 
-## Source files
+## Source Files
 
 Hayulo files use the `.hayulo` extension.
 
@@ -40,8 +27,8 @@ A source file may contain:
 - an `intent` metadata block
 - function declarations
 - test declarations
-
-Example:
+- API `app` declarations
+- top-level API record declarations used by route bodies
 
 ```hayulo
 module hello
@@ -65,6 +52,7 @@ name = "my-app"
 version = "0.1.0"
 src = "src"
 tests = "tests"
+exclude = []
 
 [permissions]
 allow = []
@@ -91,47 +79,6 @@ tests/main_test.hayulo
 
 `hayulo check` with no file checks the current project. `hayulo test` with no file runs project tests. Passing a `.hayulo` file keeps single-file behavior.
 
-## Effects and permissions preview
-
-Hayulo 0.8 introduces a project-level permission preview for generated API behavior. The current implementation checks REST API source files against `hayulo.toml`; future versions can extend the same model to function-level effect annotations.
-
-Project permissions use lowercase dotted names:
-
-```toml
-[permissions]
-allow = ["api.read", "api.write", "storage.local"]
-deny = ["api.delete"]
-```
-
-The API generator currently requires:
-
-- `api.read` for `GET` routes
-- `api.write` for `POST`, `PUT`, and `PATCH` routes
-- `api.delete` for `DELETE` routes
-- `storage.local` because the generated MVP server uses a local JSON file store
-
-If a required permission is missing from `allow`, `hayulo check` and `hayulo build` fail with `permission.missing`. If a required permission appears in `deny`, they fail with `permission.denied`.
-
-Future language-level syntax may look like:
-
-```hayulo
-fn export_report(path: Path) -> Result<(), FileError>
-  effects [files.write]
-{
-  return files.write_text(path, "report")
-}
-```
-
-That syntax is design direction only in 0.8; the enforced surface today is project permissions for generated API actions.
-
-## Comments
-
-Line comments start with `//`.
-
-```hayulo
-// This is a comment.
-```
-
 ## Modules
 
 A module declaration names the file's logical module.
@@ -140,9 +87,9 @@ A module declaration names the file's logical module.
 module app.main
 ```
 
-In 1.0, modules are parsed and reported but not linked.
+Modules are parsed and reported, but the current prototype does not link multiple modules.
 
-## Intent blocks
+## Intent Blocks
 
 Intent blocks preserve human purpose and constraints near the implementation.
 
@@ -156,7 +103,7 @@ intent {
 }
 ```
 
-In 1.0, intent blocks are skipped during execution and exposed by `hayulo check --json` as metadata. Future compilers should also expose them to documentation, refactoring tools, and AI repair systems.
+Intent blocks are skipped during execution and exposed by `hayulo check --json` as metadata.
 
 ## Functions
 
@@ -168,66 +115,81 @@ fn add(a: Int, b: Int) -> Int {
 }
 ```
 
-Hayulo 1.0 accepts type annotations and enforces the subset described in the static checking preview.
-
 A file run with `hayulo run` must contain `fn main()`.
 
-## Variables
+## Bindings and Reassignment
 
-Variables are assigned with `=`.
+New bindings use `let`.
+
+```hayulo
+let name = "Ada"
+let age = 36
+```
+
+Reassignment uses `set`.
+
+```hayulo
+let sum = 0
+for score in scores {
+  set sum = sum + score
+}
+```
+
+Bare assignment is rejected:
 
 ```hayulo
 name = "Ada"
-age = 36
 ```
 
-Hayulo 1.0 uses function-local variables.
+Use `let name = ...` for a new binding or `set name = ...` for reassignment.
 
 ## Values
 
-Supported values in Hayulo 1.0:
+Supported values:
 
 - `Int`
 - `Float`
 - `Text`
 - `Bool`
-- `List`
+- `List<T>`
 - `Map`
 - record values
+- `Option<T>`
+- `Result<T, E>`
 
 Examples:
 
 ```hayulo
-x = 10
-y = 2.5
-name = "Ada"
-active = true
+let x = 10
+let y = 2.5
+let name = "Ada"
+let active = true
 ```
 
-## Lists, maps, and indexing
+## Lists, Maps, and Indexing
 
 List literals use square brackets.
 
 ```hayulo
-scores = [90, 95, 100]
-first = scores[0]
+let scores = [90, 95, 100]
+let first = scores[0]
 ```
 
 Map literals use braces and expression keys.
 
 ```hayulo
-labels = {"role": "admin", "team": "language"}
-team = labels["team"]
+let labels = {"role": "admin", "team": "language"}
+let team = labels["team"]
 ```
 
 Lists are indexed with `Int` values. Maps are indexed with existing keys.
 
 ## Records
 
-Hayulo 1.0 supports basic record values without static record declarations in script files.
+Script files support basic record values without static record declarations.
 
 ```hayulo
-user = User {
+let user = User {
   name: "Ada",
   scores: [90, 95, 100]
 }
@@ -237,6 +199,49 @@ print(user.scores[0])
 ```
 
 Record fields are accessed with `.`.
+
+## Option and Result
+
+Missing values use `Option<T>`.
+
+```hayulo
+fn find_user(id: Int) -> Option<User> {
+  if id == 1 {
+    return Some(User { name: "Ada" })
+  }
+  return None
+}
+```
+
+Recoverable errors use `Result<T, E>`.
+
+```hayulo
+fn user_name(id: Int) -> Result<Text, Text> {
+  let user = try find_user(id)
+  return Ok(user.name)
+}
+```
+
+`Some`, `None`, `Ok`, and `Err` use Pascal-case variants. `try expr` unwraps `Some(value)` or `Ok(value)`. It returns early with `None` or `Err(error)` when the value cannot be unwrapped.
+
+Postfix `?` is rejected in the 2.0 draft. Use prefix `try expr`.
+
+## Match
+
+`match` is statement-only in the current draft.
+
+```hayulo
+match result {
+  Ok(value) => {
+    print(value)
+  }
+  Err(error) => {
+    print(error)
+  }
+}
+```
+
+The checker requires `Option` matches to cover `Some` and `None`, and `Result` matches to cover `Ok` and `Err`. Expression-form `match` is deferred.
 
 ## Operators
 
@@ -261,10 +266,10 @@ and or not
 String concatenation uses `+`.
 
 ```hayulo
-message = "Hello, " + name
+let message = "Hello, " + name
 ```
 
-## Control flow
+## Control Flow
 
 ```hayulo
 if score >= 90 {
@@ -277,9 +282,9 @@ if score >= 90 {
 For loops iterate over lists and map keys.
 
 ```hayulo
-sum = 0
+let sum = 0
 for score in scores {
-  sum = sum + score
+  set sum = sum + score
 }
 
 for key in labels {
@@ -297,28 +302,32 @@ A function without an explicit return returns `None` in the prototype runtime.
 
 ## Built-ins
 
-Hayulo 1.0 includes:
+The prototype includes:
 
 ```hayulo
 print(value)
 len(value)
 ```
 
-## Static checking preview
+## Static Checking Preview
 
 `hayulo check` runs a static checking preview for script files.
 
 The checker currently reports:
 
 - unknown local names and functions
+- reassignment before binding
+- duplicate local bindings
 - wrong function call arity
 - basic argument type mismatches from annotations
-- local type inference for literals, lists, maps, records, indexing, and calls
+- local type inference for literals, lists, maps, records, indexing, calls, `Option`, `Result`, and `try`
 - return values that do not match explicit return annotations
+- invalid `try` targets
+- non-exhaustive `match` for `Option` and `Result`
 - invalid record field access when the record value is locally known
 - invalid indexing and invalid `for` loop targets
 
-This is not a complete type system. The checker is intentionally local and conservative. Unknown or unannotated values are allowed so Hayulo programs remain easy to write and repair.
+This is not a complete type system. The checker is intentionally local and conservative.
 
 ## Tests
 
@@ -349,15 +358,13 @@ Current formatting rules:
 - repeated trailing blank lines are removed
 - formatted files end with exactly one newline
 
-Use `hayulo format --check <file-or-project>` in repair loops and CI to fail when a source file is not formatted without rewriting it.
+Use `hayulo format --check <file-or-project>` in repair loops and CI.
 
 ## Diagnostics
 
 Hayulo diagnostics are designed to be useful to both humans and LLMs.
 
-Text output is human-readable.
-
-JSON output is machine-readable:
+Text output is human-readable. JSON output is machine-readable:
 
 ```json
 {
@@ -396,26 +403,7 @@ JSON output is machine-readable:
 
 The `errors` field is retained as a compact compatibility alias during the prototype. New repair tools should prefer `schema` and `diagnostics`.
 
-Failing `hayulo test --json` output uses `hayulo.test@0.1`:
-
-```json
-{
-  "schema": "hayulo.test@0.1",
-  "status": "failed",
-  "summary": {
-    "passed": 0,
-    "failed": 1
-  },
-  "failures": [
-    {
-      "test": "add works",
-      "file": "tests/main_test.hayulo",
-      "line": 3,
-      "message": "Expectation failed."
-    }
-  ]
-}
-```
+Failing `hayulo test --json` output uses `hayulo.test@0.1`.
 
 Successful `hayulo check --json` output includes top-level intent metadata when present:
 
@@ -436,43 +424,36 @@ Successful `hayulo check --json` output includes top-level intent metadata when 
 }
 ```
 
-The static checker uses namespaced diagnostic codes for new stable checks. Examples include:
+Examples of stable diagnostic code namespaces include:
 
 ```text
+syntax.binding_requires_let_or_set
+syntax.postfix_try_removed
 name.unknown_symbol
 name.duplicate_definition
+name.reassignment_before_binding
 call.arity_mismatch
 type.argument_mismatch
 type.return_mismatch
-type.invalid_index
-type.invalid_index_target
-type.not_iterable
+type.invalid_try_target
+type.try_return_mismatch
+match.non_exhaustive
 record.unknown_field
-record.invalid_field_target
+route.body_requires_action
+api.inline_constraints_removed
+permission.missing
+permission.denied
 ```
-
-## Outside the 1.0 stable core
-
-Hayulo 1.0 intentionally leaves these for future work:
-
-- static type checker
-- `Option` and `Result`
-- `match`
-- module imports
-- package manager
-- full language-level effects
-- app framework libraries
-- TypeScript or WebAssembly backend
 
 ---
 
-# API MVP Addendum
+# API Draft Addendum
 
 Hayulo's first practical compiler target is REST API generation.
 
 This API subset is intentionally narrow and exists to make AI coding tools better at producing useful backend software.
 
-## API app block
+## API App Block
 
 ```hayulo
 app TodoApi {
@@ -485,37 +466,88 @@ app TodoApi {
 
   type Todo = record {
     id: Id<Todo>
-    title: Text min 1 max 200
+    title: Text { min: 1, max: 200 }
     done: Bool = false
     created_at: Time = now()
   }
 
   route GET "/todos" -> List<Todo> {
-    return db.Todo.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Todo
   }
 }
 ```
 
-## Supported API declarations
+## Supported API Declarations
 
 ```text
 app Name { ... }
 database sqlite "file.db"
 openapi { title: "..." version: "..." }
-type Name = record { field: Type constraints }
-route METHOD "/path" [body name: Type] -> Type { ... }
+type Name = record { field: Type { constraints } }
+route METHOD "/path" [body name: Type] -> Type { effect ... action ... }
 ```
 
-## Supported field constraints
+## Field Constraints
+
+Field constraints use structured attribute blocks.
+
+```hayulo
+type Todo = record {
+  title: Text { min: 1, max: 200 }
+  sku: Text { unique: true }
+  internal_notes: Text { private: true } = ""
+}
+```
+
+Inline constraints such as `Text min 1 max 200` are rejected.
+
+## Route Effects and Actions
+
+Every route body contains zero or more `effect` lines and exactly one `action`.
+
+```hayulo
+route POST "/todos" body input: CreateTodo -> Todo {
+  effect api.write
+  effect storage.local
+  action create Todo from input
+}
+```
+
+Supported CRUD actions:
 
 ```text
-min <number>
-max <number>
-unique
-private
+action list Record
+action get Record by id
+action create Record from input
+action update Record by id from input
+action update Record by id set { field: value }
+action delete Record by id
 ```
 
-## Supported MVP types
+Imperative route bodies such as `return db.Todo.insert(...)` are rejected.
+
+## Effects and Permissions
+
+Route effects use lowercase dotted names.
+
+```hayulo
+effect api.read
+effect storage.local
+```
+
+Project permissions use the same names:
+
+```toml
+[permissions]
+allow = ["api.read", "api.write", "api.delete", "storage.local"]
+deny = []
+```
+
+`hayulo check` and `hayulo build` fail when a declared route effect is missing from `allow` or appears in `deny`.
+
+## Supported API Types
 
 ```text
 Text
@@ -530,7 +562,7 @@ List<T>
 record types
 ```
 
-## Build output
+## Build Output
 
 `hayulo build <api-file.hayulo>` generates:
 
@@ -545,7 +577,7 @@ README.md
 
 The MVP generator uses Node.js built-ins and a local JSON file store. This is a proof of the workflow, not the final backend architecture.
 
-## API project scaffold
+## API Project Scaffold
 
 `hayulo new api <project-dir>` creates a Hayulo project with `hayulo.toml` and `src/main.hayulo` containing a small todo API. The generated project is expected to work with:
 
@@ -557,14 +589,4 @@ npm test
 npm start
 ```
 
-`hayulo serve` is not part of the 0.7 API preview. The supported serve path is the generated Node server. TypeScript generation is also deferred until the API IR and OpenAPI output are stable enough to make generated types a public artifact.
-
-API projects generated by `hayulo new api` include:
-
-```toml
-[permissions]
-allow = ["api.read", "api.write", "api.delete", "storage.local"]
-deny = []
-```
-
-Remove permissions from `allow` or add them to `deny` to make risky generated behavior fail during `hayulo check` and `hayulo build`.
+`hayulo serve` is not implemented. The supported serve path is the generated Node server. TypeScript generation is deferred until the API IR and OpenAPI output are stable enough to make generated types a public artifact.

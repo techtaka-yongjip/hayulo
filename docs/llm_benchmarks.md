@@ -118,6 +118,6 @@ Syntax changes should be justified by benchmark outcomes. A proposal is stronger
 - less generated boilerplate for the same app behavior
 - fewer unsafe or ambiguous generated behaviors
 
-For example, declarative API actions should be measured against the current route-body style before becoming the default.
+For example, future custom API actions should be measured against the current declarative CRUD action style before becoming part of the default syntax.
 
 See [Syntax Philosophy and Rulebook](syntax_rulebook.md) for the full syntax-change acceptance process.

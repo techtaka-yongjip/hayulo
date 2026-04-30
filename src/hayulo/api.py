@@ -58,6 +58,8 @@ class ApiRoute:
     body_type: str | None = None
     auth_name: str | None = None
     auth_type: str | None = None
+    effects: list[str] = field(default_factory=list)
+    action: "ApiAction | None" = None
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {"method": self.method, "path": self.path, "response_type": self.response_type, "line": self.line}
@@ -65,6 +67,31 @@ class ApiRoute:
             data["body"] = {"name": self.body_name, "type": self.body_type}
         if self.auth_type:
             data["auth"] = {"name": self.auth_name, "type": self.auth_type}
+        data["effects"] = self.effects
+        if self.action:
+            data["action"] = self.action.to_dict()
+        return data
+
+
+@dataclass
+class ApiAction:
+    kind: str
+    record: str
+    source: str | None = None
+    id_name: str | None = None
+    updates: dict[str, Any] = field(default_factory=dict)
+    line: int | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"kind": self.kind, "record": self.record}
+        if self.source:
+            data["source"] = self.source
+        if self.id_name:
+            data["id"] = self.id_name
+        if self.updates:
+            data["updates"] = self.updates
+        if self.line:
+            data["line"] = self.line
         return data
 
 
@@ -182,8 +209,8 @@ class ApiSourceParser:
                 self.records[record.name] = record
                 continue
             if re.match(r"route\s+", line) and in_app:
-                _, i = collect_block(lines, i, self.filename, "route")
-                self.routes.append(self._route(line, line_no))
+                block, i = collect_block(lines, i, self.filename, "route")
+                self.routes.append(self._route(line, block, line_no))
                 continue
             if re.match(r"test\s+", line):
                 _, i = collect_block(lines, i, self.filename, "test")
@@ -225,13 +252,13 @@ class ApiSourceParser:
                 continue
             fm = re.match(r"([A-Za-z_]\w*)\s*:\s*(.+)$", line)
             if not fm:
-                self._err("invalid_field", f"Invalid field line: {line!r}.", line_no + 1 + offset, ["Use: name: Type min 1 max 200."])
+                self._err("invalid_field", f"Invalid field line: {line!r}.", line_no + 1 + offset, ["Use: name: Text { min: 1, max: 200 }."])
             fields.append(parse_field(fm.group(1), fm.group(2), line_no + 1 + offset, self.filename))
         if not fields:
             self._err("empty_record", f"Record {m.group(1)} has no fields.", line_no, ["Add at least one field."])
         return ApiRecord(m.group(1), fields, line_no)
 
-    def _route(self, header: str, line_no: int) -> ApiRoute:
+    def _route(self, header: str, block: list[str], line_no: int) -> ApiRoute:
         head = header.rsplit("{", 1)[0].strip()
         m = re.match(r"route\s+(GET|POST|PUT|PATCH|DELETE)\s+\"([^\"]+)\"\s*(.*?)\s*->\s*([A-Za-z_]\w*(?:<[^>]+>)?)\s*$", head)
         if not m:
@@ -244,7 +271,53 @@ class ApiSourceParser:
         am = re.search(r"\bauth\s+([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*(?:<[^>]+>)?)", clauses)
         if am:
             auth_name, auth_type = am.group(1), compact_type(am.group(2))
-        return ApiRoute(m.group(1), m.group(2), compact_type(m.group(4)), line_no, body_name, body_type, auth_name, auth_type)
+        effects, action = self._route_body(block, line_no + 1)
+        return ApiRoute(m.group(1), m.group(2), compact_type(m.group(4)), line_no, body_name, body_type, auth_name, auth_type, effects, action)
+
+    def _route_body(self, block: list[str], base_line: int) -> tuple[list[str], ApiAction]:
+        effects: list[str] = []
+        action: ApiAction | None = None
+        for offset, raw in enumerate(block):
+            line_no = base_line + offset
+            line = strip_comment(raw).strip().rstrip(",")
+            if not line:
+                continue
+            m = re.match(r"effect\s+([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)\s*$", line)
+            if m:
+                effects.append(m.group(1))
+                continue
+            if line.startswith("return ") or line.startswith("db.") or "db." in line:
+                self._err("route.body_requires_action", "Hayulo 2.0 API routes use declarative actions instead of db calls.", line_no, ["Use effect declarations and an action such as: action create Todo from input."])
+            if line.startswith("action "):
+                if action is not None:
+                    self._err("route.multiple_actions", "Route body can contain exactly one action.", line_no, ["Remove the extra action or split the route."])
+                action = self._action(line, line_no)
+                continue
+            self._err("route.invalid_body_declaration", f"Invalid route body declaration: {line!r}.", line_no, ["Use effect <name> or action <kind> ..."])
+        if action is None:
+            self._err("route.missing_action", "Route body must declare exactly one action.", base_line, ["Add an action declaration such as: action list Todo."])
+        return effects, action
+
+    def _action(self, line: str, line_no: int) -> ApiAction:
+        m = re.match(r"action\s+list\s+([A-Za-z_]\w*)\s*$", line)
+        if m:
+            return ApiAction("list", m.group(1), line=line_no)
+        m = re.match(r"action\s+get\s+([A-Za-z_]\w*)\s+by\s+([A-Za-z_]\w*)\s*$", line)
+        if m:
+            return ApiAction("get", m.group(1), id_name=m.group(2), line=line_no)
+        m = re.match(r"action\s+create\s+([A-Za-z_]\w*)\s+from\s+([A-Za-z_]\w*)\s*$", line)
+        if m:
+            return ApiAction("create", m.group(1), source=m.group(2), line=line_no)
+        m = re.match(r"action\s+update\s+([A-Za-z_]\w*)\s+by\s+([A-Za-z_]\w*)\s+from\s+([A-Za-z_]\w*)\s*$", line)
+        if m:
+            return ApiAction("update", m.group(1), id_name=m.group(2), source=m.group(3), line=line_no)
+        m = re.match(r"action\s+update\s+([A-Za-z_]\w*)\s+by\s+([A-Za-z_]\w*)\s+set\s*\{(.+)\}\s*$", line)
+        if m:
+            return ApiAction("update", m.group(1), id_name=m.group(2), updates=parse_action_updates(m.group(3), self.filename, line_no), line=line_no)
+        m = re.match(r"action\s+delete\s+([A-Za-z_]\w*)\s+by\s+([A-Za-z_]\w*)\s*$", line)
+        if m:
+            return ApiAction("delete", m.group(1), id_name=m.group(2), line=line_no)
+        self._err("route.invalid_action", f"Invalid route action: {line!r}.", line_no, ["Supported actions are list, get, create, update, and delete."])
 
     def _err(self, code: str, message: str, line: int, suggestions: list[str]) -> None:
         raise HayuloSyntaxError(Diagnostic(code=code, message=message, file=self.filename, line=line, suggestions=suggestions))
@@ -308,32 +381,76 @@ def collect_block(lines: list[str], start: int, filename: str | None, label: str
 
 def parse_field(name: str, rhs: str, line: int, filename: str | None) -> ApiField:
     default: str | None = None
-    if "=" in rhs:
-        rhs, default = rhs.split("=", 1)
-        default = default.strip()
-    parts = rhs.strip().split()
-    if not parts:
-        raise HayuloSyntaxError(Diagnostic(code="missing_field_type", message=f"Field {name!r} is missing a type.", file=filename, line=line))
-    type_name = compact_type(parts[0])
     constraints: dict[str, Any] = {}
-    i = 1
-    while i < len(parts):
-        key = parts[i]
-        if key in {"unique", "private"}:
-            constraints[key] = True
-            i += 1
-        elif key in {"min", "max"}:
-            if i + 1 >= len(parts):
-                raise HayuloSyntaxError(Diagnostic(code="missing_constraint_value", message=f"Constraint {key!r} on {name!r} needs a value.", file=filename, line=line))
-            value = parts[i + 1]
-            try:
-                constraints[key] = float(value) if "." in value else int(value)
-            except ValueError as exc:
-                raise HayuloSyntaxError(Diagnostic(code="invalid_constraint_value", message=f"Constraint {key!r} on {name!r} must be numeric.", file=filename, line=line)) from exc
-            i += 2
-        else:
-            raise HayuloSyntaxError(Diagnostic(code="unknown_field_constraint", message=f"Unknown field constraint {key!r} on {name!r}.", file=filename, line=line, suggestions=["Supported constraints are min, max, unique, and private."]))
+    rhs = rhs.strip()
+    if "{" in rhs:
+        before, after = rhs.split("{", 1)
+        constraints_text, rest = after.split("}", 1) if "}" in after else ("", after)
+        type_name = compact_type(before)
+        constraints = parse_constraint_block(constraints_text, filename, line)
+        rest = rest.strip()
+        if rest:
+            if not rest.startswith("="):
+                raise HayuloSyntaxError(Diagnostic(code="invalid_field", message=f"Invalid field suffix: {rest!r}.", file=filename, line=line, suggestions=["Use: name: Text { min: 1, max: 200 } = default."]))
+            default = rest[1:].strip()
+    else:
+        if "=" in rhs:
+            rhs, default = rhs.split("=", 1)
+            default = default.strip()
+        parts = rhs.strip().split()
+        if len(parts) > 1:
+            raise HayuloSyntaxError(Diagnostic(code="api.inline_constraints_removed", message="Hayulo 2.0 uses structured field constraint blocks.", file=filename, line=line, suggestions=["Use: title: Text { min: 1, max: 200 }."]))
+        type_name = compact_type(parts[0]) if parts else ""
+    if not type_name:
+        raise HayuloSyntaxError(Diagnostic(code="missing_field_type", message=f"Field {name!r} is missing a type.", file=filename, line=line))
     return ApiField(name, type_name, line, default, constraints)
+
+
+def parse_constraint_block(text: str, filename: str | None, line: int) -> dict[str, Any]:
+    constraints: dict[str, Any] = {}
+    for raw_part in text.split(","):
+        part = raw_part.strip()
+        if not part:
+            continue
+        if ":" not in part:
+            raise HayuloSyntaxError(Diagnostic(code="invalid_constraint", message=f"Invalid constraint entry: {part!r}.", file=filename, line=line, suggestions=["Use key: value entries inside the constraint block."]))
+        key, raw_value = [item.strip() for item in part.split(":", 1)]
+        if key not in {"min", "max", "unique", "private"}:
+            raise HayuloSyntaxError(Diagnostic(code="unknown_field_constraint", message=f"Unknown field constraint {key!r}.", file=filename, line=line, suggestions=["Supported constraints are min, max, unique, and private."]))
+        if key in {"unique", "private"}:
+            if raw_value not in {"true", "false"}:
+                raise HayuloSyntaxError(Diagnostic(code="invalid_constraint_value", message=f"Constraint {key!r} must be true or false.", file=filename, line=line))
+            constraints[key] = raw_value == "true"
+        else:
+            try:
+                constraints[key] = float(raw_value) if "." in raw_value else int(raw_value)
+            except ValueError as exc:
+                raise HayuloSyntaxError(Diagnostic(code="invalid_constraint_value", message=f"Constraint {key!r} must be numeric.", file=filename, line=line)) from exc
+    return constraints
+
+
+def parse_action_updates(text: str, filename: str | None, line: int) -> dict[str, Any]:
+    updates: dict[str, Any] = {}
+    for raw_part in text.split(","):
+        part = raw_part.strip()
+        if not part:
+            continue
+        if ":" not in part:
+            raise HayuloSyntaxError(Diagnostic(code="route.invalid_action_update", message=f"Invalid action update entry: {part!r}.", file=filename, line=line, suggestions=["Use field: value entries inside set { ... }."]))
+        key, raw_value = [item.strip() for item in part.split(":", 1)]
+        if raw_value == "true":
+            value: Any = True
+        elif raw_value == "false":
+            value = False
+        elif raw_value.startswith('"') and raw_value.endswith('"'):
+            value = raw_value[1:-1]
+        else:
+            try:
+                value = float(raw_value) if "." in raw_value else int(raw_value)
+            except ValueError:
+                raise HayuloSyntaxError(Diagnostic(code="route.invalid_action_update", message=f"Unsupported action update value: {raw_value!r}.", file=filename, line=line, suggestions=["Use Text, Bool, Int, or Float literal values in this draft."]))
+        updates[key] = value
+    return updates
 
 
 def compact_type(value: str) -> str:
@@ -379,17 +496,81 @@ def check_api_spec(spec: ApiSpec, filename: str | None = None) -> None:
             if "min" in field.constraints and "max" in field.constraints and field.constraints["min"] > field.constraints["max"]:
                 raise HayuloApiError(Diagnostic(code="invalid_constraint_range", message=f"Field {field.name!r} has min greater than max.", file=filename, line=field.line))
     for route in spec.routes:
+        if route.action is None:
+            raise HayuloApiError(Diagnostic(code="route.missing_action", message=f"Route {route.method} {route.path} must declare an action.", file=filename, line=route.line))
         if route.response_type != "Status":
             validate_type(route.response_type, spec.records, filename, route.line, f"route {route.method} {route.path}")
         if route.body_type:
             validate_type(route.body_type, spec.records, filename, route.line, f"body of route {route.method} {route.path}")
         if route.method == "POST" and not route.body_type:
             raise HayuloApiError(Diagnostic(code="post_without_body", message=f"POST route {route.path} must declare a body input type.", file=filename, line=route.line, suggestions=["Add: body input: CreateTodo."]))
+        validate_route_action(route, spec.records, filename)
+        missing_effects = sorted(set(required_effects_for_action(route)) - set(route.effects))
+        if missing_effects:
+            raise HayuloApiError(
+                Diagnostic(
+                    code="route.missing_effect",
+                    message=f"Route {route.method} {route.path} is missing required effect {missing_effects[0]!r}.",
+                    file=filename,
+                    line=route.line,
+                    details={"missing": missing_effects, "effects": route.effects},
+                    suggestions=[f"Add: effect {missing_effects[0]}"],
+                )
+            )
         response_record = response_record_name(route.response_type)
         if response_record and route.body_type and route.body_type in spec.records and response_record in spec.records:
             extra = sorted(spec.records[route.body_type].field_names() - spec.records[response_record].field_names())
             if extra:
                 raise HayuloApiError(Diagnostic(code="body_field_not_in_response_record", message=f"Body type {route.body_type} contains fields missing from {response_record}: {', '.join(extra)}.", file=filename, line=route.line, details={"unknown_fields": extra}))
+
+
+def validate_route_action(route: ApiRoute, records: dict[str, ApiRecord], filename: str | None) -> None:
+    action = route.action
+    if action is None:
+        return
+    if action.record not in records:
+        raise HayuloApiError(Diagnostic(code="route.unknown_action_record", message=f"Unknown action record {action.record!r}.", file=filename, line=action.line or route.line, details={"record": action.record}, suggestions=["Use a record declared in this API source."]))
+    if action.kind == "list":
+        if not route.response_type.startswith("List<"):
+            raise HayuloApiError(Diagnostic(code="route.action_response_mismatch", message="list actions must return List<Record>.", file=filename, line=route.line))
+        if route.body_type:
+            raise HayuloApiError(Diagnostic(code="route.action_body_mismatch", message="list actions do not use request bodies.", file=filename, line=route.line))
+    elif action.kind == "get":
+        if action.id_name not in path_parameters_names(route):
+            raise HayuloApiError(Diagnostic(code="route.action_missing_path_param", message=f"Action references missing path parameter {action.id_name!r}.", file=filename, line=action.line or route.line, suggestions=["Use a name present in the route path, such as {id}."]))
+        if route.response_type != action.record:
+            raise HayuloApiError(Diagnostic(code="route.action_response_mismatch", message="get actions must return the action record.", file=filename, line=route.line))
+        if route.body_type:
+            raise HayuloApiError(Diagnostic(code="route.action_body_mismatch", message="get actions do not use request bodies.", file=filename, line=route.line))
+    elif action.kind == "create":
+        if action.source != route.body_name:
+            raise HayuloApiError(Diagnostic(code="route.action_body_mismatch", message=f"Create action source {action.source!r} must match body binding {route.body_name!r}.", file=filename, line=action.line or route.line, suggestions=["Use: action create Record from input."]))
+        if route.response_type != action.record:
+            raise HayuloApiError(Diagnostic(code="route.action_response_mismatch", message="create actions must return the action record.", file=filename, line=route.line))
+    elif action.kind == "update":
+        if action.id_name not in path_parameters_names(route):
+            raise HayuloApiError(Diagnostic(code="route.action_missing_path_param", message=f"Action references missing path parameter {action.id_name!r}.", file=filename, line=action.line or route.line, suggestions=["Use a name present in the route path, such as {id}."]))
+        if route.response_type != action.record:
+            raise HayuloApiError(Diagnostic(code="route.action_response_mismatch", message="update actions must return the action record.", file=filename, line=route.line))
+        if action.source and action.source != route.body_name:
+            raise HayuloApiError(Diagnostic(code="route.action_body_mismatch", message=f"Update action source {action.source!r} must match body binding {route.body_name!r}.", file=filename, line=action.line or route.line, suggestions=["Use: action update Record by id from input."]))
+    elif action.kind == "delete":
+        if action.id_name not in path_parameters_names(route):
+            raise HayuloApiError(Diagnostic(code="route.action_missing_path_param", message=f"Action references missing path parameter {action.id_name!r}.", file=filename, line=action.line or route.line))
+        if route.response_type != "Status":
+            raise HayuloApiError(Diagnostic(code="route.action_response_mismatch", message="delete actions must return Status.", file=filename, line=route.line))
+    else:
+        raise HayuloApiError(Diagnostic(code="route.unsupported_action", message=f"Unsupported route action {action.kind!r}.", file=filename, line=action.line or route.line))
+    if action.kind in {"create", "update"} and action.source and not route.body_type:
+        raise HayuloApiError(Diagnostic(code="route.action_requires_body", message=f"{action.kind} action uses a body source but the route has no body declaration.", file=filename, line=action.line or route.line))
+    if action.updates:
+        unknown = sorted(set(action.updates) - records[action.record].field_names())
+        if unknown:
+            raise HayuloApiError(Diagnostic(code="route.unknown_update_field", message=f"Action update references unknown field {unknown[0]!r}.", file=filename, line=action.line or route.line, details={"field": unknown[0], "record": action.record}))
+
+
+def path_parameters_names(route: ApiRoute) -> set[str]:
+    return set(re.findall(r"\{([A-Za-z_]\w*)\}", route.path))
 
 
 def singularize(value: str) -> str:
@@ -401,6 +582,8 @@ def singularize(value: str) -> str:
 
 
 def infer_route_record(route: ApiRoute, records: dict[str, ApiRecord]) -> str | None:
+    if route.action and route.action.record in records:
+        return route.action.record
     response = response_record_name(route.response_type)
     if response in records:
         return response
@@ -412,6 +595,8 @@ def infer_route_record(route: ApiRoute, records: dict[str, ApiRecord]) -> str | 
 
 
 def infer_action(route: ApiRoute) -> str:
+    if route.action:
+        return route.action.kind
     if route.method == "GET" and route.response_type.startswith("List<"):
         return "list"
     if route.method == "GET":
@@ -428,14 +613,21 @@ def infer_action(route: ApiRoute) -> str:
 
 
 def required_api_permissions(spec: ApiSpec) -> list[str]:
-    required = {"storage.local"}
+    required: set[str] = set()
     for route in spec.routes:
-        if route.method == "GET":
-            required.add("api.read")
-        elif route.method in {"POST", "PUT", "PATCH"}:
-            required.add("api.write")
-        elif route.method == "DELETE":
-            required.add("api.delete")
+        required.update(route.effects)
+    return sorted(required)
+
+
+def required_effects_for_action(route: ApiRoute) -> list[str]:
+    action = infer_action(route)
+    required = {"storage.local"}
+    if action in {"list", "get"}:
+        required.add("api.read")
+    elif action in {"create", "update"}:
+        required.add("api.write")
+    elif action == "delete":
+        required.add("api.delete")
     return sorted(required)
 
 
@@ -623,7 +815,15 @@ def generate_api(spec: ApiSpec, out_dir: Path, *, clean: bool = True) -> list[Ge
     if clean and out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    routes = [{**route.to_dict(), "action": infer_action(route), "record": infer_route_record(route, spec.records)} for route in spec.routes]
+    routes = [
+        {
+            **route.to_dict(),
+            "action": infer_action(route),
+            "record": infer_route_record(route, spec.records),
+            "updates": route.action.updates if route.action else {},
+        }
+        for route in spec.routes
+    ]
     ir = spec.to_dict()
     ir["routes"] = routes
     files = [
@@ -672,7 +872,7 @@ function validateBody(typeName,input){const record=META.records[typeName];if(!re
 function defaultValue(f,recordName){if(f.type.startsWith('Id<')){const id=store.nextIds[recordName]||1;store.nextIds[recordName]=id+1;return id;}if(f.default==='now()'||f.type==='Time')return new Date().toISOString();if(f.default==='false')return false;if(f.default==='true')return true;if(f.default!==undefined&&f.default!==null){if(/^-?\d+$/.test(f.default))return Number.parseInt(f.default,10);if(/^-?\d+\.\d+$/.test(f.default))return Number.parseFloat(f.default);return String(f.default).replace(/^"|"$/g,'');}return null;}
 function createRecord(recordName,input){const record=META.records[recordName],item={};for(const f of record.fields){item[f.name]=Object.prototype.hasOwnProperty.call(input,f.name)?input[f.name]:defaultValue(f,recordName);}store.data[recordName].push(item);save();return item;}
 function findById(recordName,id){const n=Number.parseInt(id,10);return store.data[recordName].find(x=>x.id===n);}
-async function handle(route,params,req,res){const recordName=route.record;if(route.action==='list')return send(res,200,store.data[recordName]||[]);if(route.action==='get'){const item=findById(recordName,params.id);return item?send(res,200,item):error(res,404,'not_found',`${recordName} not found.`);}if(route.action==='create'){const body=await readBody(req),v=validateBody(route.body.type,body);return v.ok?send(res,201,createRecord(recordName,v.value)):error(res,400,'validation_failed','Request body failed validation.',v.errors);}if(route.action==='mark_done'){const item=findById(recordName,params.id);if(!item)return error(res,404,'not_found',`${recordName} not found.`);item.done=true;save();return send(res,200,item);}if(route.action==='update'){const item=findById(recordName,params.id);if(!item)return error(res,404,'not_found',`${recordName} not found.`);const body=await readBody(req),v=validateBody(route.body.type,body);if(!v.ok)return error(res,400,'validation_failed','Request body failed validation.',v.errors);Object.assign(item,v.value);save();return send(res,200,item);}if(route.action==='delete'){const n=Number.parseInt(params.id,10),before=store.data[recordName].length;store.data[recordName]=store.data[recordName].filter(x=>x.id!==n);if(store.data[recordName].length===before)return error(res,404,'not_found',`${recordName} not found.`);save();return send(res,204,null);}return error(res,501,'not_implemented',`Route action ${route.action} is not implemented.`);}
+async function handle(route,params,req,res){const recordName=route.record;if(route.action==='list')return send(res,200,store.data[recordName]||[]);if(route.action==='get'){const item=findById(recordName,params.id);return item?send(res,200,item):error(res,404,'not_found',`${recordName} not found.`);}if(route.action==='create'){const body=await readBody(req),v=validateBody(route.body.type,body);return v.ok?send(res,201,createRecord(recordName,v.value)):error(res,400,'validation_failed','Request body failed validation.',v.errors);}if(route.action==='update'){const item=findById(recordName,params.id);if(!item)return error(res,404,'not_found',`${recordName} not found.`);if(route.updates&&Object.keys(route.updates).length){Object.assign(item,route.updates);save();return send(res,200,item);}const body=await readBody(req),v=validateBody(route.body.type,body);if(!v.ok)return error(res,400,'validation_failed','Request body failed validation.',v.errors);Object.assign(item,v.value);save();return send(res,200,item);}if(route.action==='delete'){const n=Number.parseInt(params.id,10),before=store.data[recordName].length;store.data[recordName]=store.data[recordName].filter(x=>x.id!==n);if(store.data[recordName].length===before)return error(res,404,'not_found',`${recordName} not found.`);save();return send(res,204,null);}return error(res,501,'not_implemented',`Route action ${route.action} is not implemented.`);}
 export function createServer(){return http.createServer(async(req,res)=>{try{if(req.method==='OPTIONS')return send(res,204,null);const url=new URL(req.url||'/','http://localhost');if(req.method==='GET'&&url.pathname==='/health')return send(res,200,{status:'ok',app:META.app});if(req.method==='GET'&&url.pathname==='/openapi.json')return send(res,200,OPENAPI);for(const r of META.routes){if(r.method!==req.method)continue;const params=matchRoute(r.path,url.pathname);if(params)return await handle(r,params,req,res);}return error(res,404,'route_not_found',`No route matches ${req.method} ${url.pathname}.`);}catch(e){return error(res,e.status||500,e.code||'internal_error',e.message||'Internal error.');}});}
 export function start(port=Number.parseInt(process.env.PORT||'3000',10)){const s=createServer();s.listen(port,()=>{console.log(`${META.app} listening on http://localhost:${port}`);console.log(`OpenAPI: http://localhost:${port}/openapi.json`);});return s;}
 if(import.meta.url===pathToFileURL(process.argv[1]).href){start();}
@@ -704,7 +904,7 @@ def generated_smoke_test(spec: ApiSpec, routes: list[dict[str, Any]]) -> str:
     list_route = next((r for r in routes if r["action"] == "list"), None)
     get_route = next((r for r in routes if r["action"] == "get"), None)
     create_route = next((r for r in routes if r["action"] == "create"), None)
-    done_route = next((r for r in routes if r["action"] == "mark_done"), None)
+    done_route = next((r for r in routes if r["action"] == "update" and r.get("updates", {}).get("done") is True), None)
     delete_route = next((r for r in routes if r["action"] == "delete"), None)
     body: dict[str, Any] = {}
     if create_route and create_route.get("body", {}).get("type") in spec.records:

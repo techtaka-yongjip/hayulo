@@ -208,6 +208,26 @@ Success criteria:
 - `make verify` protects benchmark task metadata and Hayulo baselines
 - app-building improvements reduce repair iterations over time
 
+## Version 2.0 Draft: Syntax Cleanup
+
+Goal: make the active draft syntax more reliable for LLM generation and repair, even where that requires breaking the historical 1.x surface.
+
+Work:
+
+- require `let` for new bindings and `set` for reassignment
+- add `Option<T>`, `Result<T, E>`, Pascal variants, prefix `try`, and statement-form `match`
+- replace inferred API route behavior with declared `effect` lines and one CRUD `action`
+- replace inline API field constraints with structured attribute blocks
+- add targeted diagnostics for rejected 1.x syntax
+- update examples, benchmarks, docs, and generated project templates
+
+Success criteria:
+
+- `hayulo --version` reports `2.0.0a0`
+- examples and LLM benchmark baselines use the 2.0 draft syntax
+- old assignment, postfix try, inline constraints, and imperative route bodies fail with specific diagnostics
+- `make verify` passes
+
 ## Priority Rules
 
 When choosing work, prioritize:

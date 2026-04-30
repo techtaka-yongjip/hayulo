@@ -72,7 +72,7 @@ pub fn calculate_total(items: List<Item>) -> Money {
 Local variables can be inferred:
 
 ```hayulo
-total = Money.zero("USD")
+let total = Money.zero("USD")
 ```
 
 This balances readability, safety, and convenience.
@@ -91,8 +91,12 @@ Using a possibly missing value should require explicit handling:
 
 ```hayulo
 match find_user(id) {
-  Some(user) => print(user.name)
-  None => print("User not found")
+  Some(user) => {
+    print(user.name)
+  }
+  None => {
+    print("User not found")
+  }
 }
 ```
 
@@ -102,7 +106,7 @@ Expected failures should use `Result<T, E>`.
 
 ```hayulo
 fn read_config(path: Path) -> Result<Config, FileError> {
-  text = files.read_text(path)?
+  let text = try files.read_text(path)
   return Config.parse(text)
 }
 ```

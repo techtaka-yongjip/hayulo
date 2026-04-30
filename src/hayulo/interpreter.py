@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from .ast import (
-    Assign,
     Binary,
     Call,
     Expect,
@@ -15,16 +14,21 @@ from .ast import (
     FunctionDecl,
     If,
     Index,
+    Let,
     ListLiteral,
     Literal,
     MapLiteral,
+    Match,
     Program,
     RecordLiteral,
     Return,
+    Set,
     Stmt,
     TestDecl,
+    Try,
     Unary,
     Variable,
+    VariantLiteral,
 )
 from .diagnostics import Diagnostic, HayuloRuntimeError
 
@@ -38,6 +42,18 @@ class _ReturnSignal(Exception):
 class RecordValue:
     type_name: str
     fields: dict[str, Any]
+
+
+@dataclass
+class OptionValue:
+    kind: str
+    value: Any = None
+
+
+@dataclass
+class ResultValue:
+    kind: str
+    value: Any
 
 
 @dataclass
@@ -62,6 +78,7 @@ class Interpreter:
         self.filename = filename
         self.output: list[str] = []
         self.env_stack: list[dict[str, Any]] = []
+        self.return_type_stack: list[str | None] = []
 
     def run_main(self) -> Any:
         if "main" not in self.program.functions:
@@ -138,11 +155,13 @@ class Interpreter:
 
         env = {param.name: value for param, value in zip(fn.params, args)}
         self.env_stack.append(env)
+        self.return_type_stack.append(fn.return_type)
         try:
             self._exec_block(fn.body)
         except _ReturnSignal as signal:
             return signal.value
         finally:
+            self.return_type_stack.pop()
             self.env_stack.pop()
         return None
 
@@ -151,8 +170,12 @@ class Interpreter:
             self._exec_stmt(stmt)
 
     def _exec_stmt(self, stmt: Stmt) -> None:
-        if isinstance(stmt, Assign):
-            self._assign(stmt.name, self._eval(stmt.expr))
+        if isinstance(stmt, Let):
+            self._bind(stmt.name, self._eval(stmt.expr), stmt.line)
+            return
+
+        if isinstance(stmt, Set):
+            self._reassign(stmt.name, self._eval(stmt.expr), stmt.line)
             return
 
         if isinstance(stmt, Return):
@@ -171,7 +194,7 @@ class Interpreter:
 
         if isinstance(stmt, For):
             for value in self._iterable_values(self._eval(stmt.iterable), stmt.line):
-                self._assign(stmt.name, value)
+                self._bind_or_replace(stmt.name, value)
                 self._exec_block(stmt.body)
             return
 
@@ -189,7 +212,47 @@ class Interpreter:
                 )
             return
 
+        if isinstance(stmt, Match):
+            self._exec_match(stmt)
+            return
+
         self._runtime_error("unknown_statement", f"Cannot execute statement {stmt!r}.")
+
+    def _exec_match(self, stmt: Match) -> None:
+        target = self._eval(stmt.target)
+        if isinstance(target, OptionValue):
+            variant = target.kind
+            value = target.value
+        elif isinstance(target, ResultValue):
+            variant = target.kind
+            value = target.value
+        else:
+            self._runtime_error(
+                "match_invalid_target",
+                "match expects an Option or Result value.",
+                details={"target_type": self._type_name(target)},
+                suggestions=["Match on Some/None or Ok/Err values."],
+                line=stmt.line,
+            )
+        for case in stmt.cases:
+            if case.variant != variant:
+                continue
+            if case.binding:
+                self.env_stack.append({case.binding: value})
+                try:
+                    self._exec_block(case.body)
+                finally:
+                    self.env_stack.pop()
+            else:
+                self._exec_block(case.body)
+            return
+        self._runtime_error(
+            "match_non_exhaustive",
+            f"No match case handled {variant}.",
+            details={"variant": variant},
+            suggestions=["Add all Option or Result variants to this match."],
+            line=stmt.line,
+        )
 
     def _eval(self, expr: Expr) -> Any:
         if isinstance(expr, Literal):
@@ -244,6 +307,21 @@ class Interpreter:
         if isinstance(expr, RecordLiteral):
             return RecordValue(expr.type_name, {name: self._eval(value) for name, value in expr.fields})
 
+        if isinstance(expr, VariantLiteral):
+            if expr.variant == "None":
+                return OptionValue("None")
+            value = self._eval(expr.value) if expr.value else None
+            if expr.variant == "Some":
+                return OptionValue("Some", value)
+            if expr.variant == "Ok":
+                return ResultValue("Ok", value)
+            if expr.variant == "Err":
+                return ResultValue("Err", value)
+            self._runtime_error("unknown_variant", f"Unknown variant {expr.variant!r}.", line=expr.line)
+
+        if isinstance(expr, Try):
+            return self._eval_try(expr)
+
         if isinstance(expr, Call):
             args = [self._eval(arg) for arg in expr.args]
             try:
@@ -254,6 +332,30 @@ class Interpreter:
                 raise
 
         self._runtime_error("unknown_expression", f"Cannot evaluate expression {expr!r}.")
+
+    def _eval_try(self, expr: Try) -> Any:
+        value = self._eval(expr.expr)
+        if isinstance(value, OptionValue):
+            if value.kind == "Some":
+                return value.value
+            raise _ReturnSignal(self._early_none_value())
+        if isinstance(value, ResultValue):
+            if value.kind == "Ok":
+                return value.value
+            raise _ReturnSignal(ResultValue("Err", value.value))
+        self._runtime_error(
+            "invalid_try_target",
+            "try expects an Option or Result value.",
+            details={"target_type": self._type_name(value)},
+            suggestions=["Use try with a function returning Option<T> or Result<T, E>."],
+            line=expr.line,
+        )
+
+    def _early_none_value(self) -> Any:
+        return_type = self.return_type_stack[-1] if self.return_type_stack else None
+        if return_type and return_type.replace(" ", "").startswith("Result<"):
+            return ResultValue("Err", "None")
+        return OptionValue("None")
 
     def _binary(self, left: Any, op: str, right: Any) -> Any:
         try:
@@ -382,10 +484,34 @@ class Interpreter:
             suggestions=["Define the variable before using it or check for a typo."],
         )
 
-    def _assign(self, name: str, value: Any) -> None:
+    def _bind(self, name: str, value: Any, line: int) -> None:
+        if not self.env_stack:
+            self.env_stack.append({})
+        if name in self.env_stack[-1]:
+            self._runtime_error(
+                "duplicate_binding",
+                f"Name {name!r} is already bound in this scope.",
+                suggestions=["Use set to reassign an existing binding."],
+                line=line,
+            )
+        self.env_stack[-1][name] = value
+
+    def _bind_or_replace(self, name: str, value: Any) -> None:
         if not self.env_stack:
             self.env_stack.append({})
         self.env_stack[-1][name] = value
+
+    def _reassign(self, name: str, value: Any, line: int) -> None:
+        for env in reversed(self.env_stack):
+            if name in env:
+                env[name] = value
+                return
+        self._runtime_error(
+            "reassignment_before_binding",
+            f"Cannot reassign {name!r} before it is bound.",
+            suggestions=["Use let before set."],
+            line=line,
+        )
 
     def _truthy(self, value: Any) -> bool:
         return bool(value)
@@ -405,6 +531,10 @@ class Interpreter:
         if isinstance(value, RecordValue):
             fields = [f"{name}: {self._stringify(val)}" for name, val in value.fields.items()]
             return f"{value.type_name} {{" + ", ".join(fields) + "}"
+        if isinstance(value, OptionValue):
+            return "None" if value.kind == "None" else f"Some({self._stringify(value.value)})"
+        if isinstance(value, ResultValue):
+            return f"{value.kind}({self._stringify(value.value)})"
         return str(value)
 
     def _type_name(self, value: Any) -> str:
@@ -422,6 +552,10 @@ class Interpreter:
             return "Map"
         if isinstance(value, RecordValue):
             return value.type_name
+        if isinstance(value, OptionValue):
+            return "Option"
+        if isinstance(value, ResultValue):
+            return "Result"
         if value is None:
             return "None"
         return type(value).__name__

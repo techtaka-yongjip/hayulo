@@ -732,40 +732,44 @@ app {app_name} {{
 
   type Todo = record {{
     id: Id<Todo>
-    title: Text min 1 max 200
+    title: Text {{ min: 1, max: 200 }}
     done: Bool = false
     created_at: Time = now()
   }}
 
   route GET "/todos" -> List<Todo> {{
-    return db.Todo.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Todo
   }}
 
   route GET "/todos/{{id}}" -> Todo {{
-    return db.Todo.get(id)?
+    effect api.read
+    effect storage.local
+    action get Todo by id
   }}
 
   route POST "/todos" body input: CreateTodo -> Todo {{
-    todo = Todo {{
-      title: input.title
-    }}
-
-    return db.Todo.insert(todo)
+    effect api.write
+    effect storage.local
+    action create Todo from input
   }}
 
   route PATCH "/todos/{{id}}/done" -> Todo {{
-    todo = db.Todo.get(id)?
-    return db.Todo.update(todo with {{ done: true }})
+    effect api.write
+    effect storage.local
+    action update Todo by id set {{ done: true }}
   }}
 
   route DELETE "/todos/{{id}}" -> Status {{
-    db.Todo.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete Todo by id
   }}
 }}
 
 type CreateTodo = record {{
-  title: Text min 1 max 200
+  title: Text {{ min: 1, max: 200 }}
 }}
 """
 

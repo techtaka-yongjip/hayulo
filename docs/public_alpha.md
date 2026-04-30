@@ -1,8 +1,8 @@
 # Public Alpha Guide
 
-Hayulo public alpha is for outside testers who want to try the 1.0 stable core, understand the limits, and report useful issues.
+Hayulo public alpha is for outside testers who want to try the 2.0 draft, understand the limits, and report useful issues.
 
-Hayulo 1.0 stabilizes a small core, but it is still not recommended for critical production systems. The alpha testing goal is to make this loop repeatable:
+Hayulo 2.0.0a0 is a breaking draft focused on reliable LLM generation and repair. It is still not recommended for critical production systems. The alpha testing goal is to make this loop repeatable:
 
 ```text
 write or generate Hayulo
@@ -74,7 +74,7 @@ npm start
 ## What Is Stable Enough to Test
 
 - CLI commands documented in [README.md](../README.md)
-- 1.0 language subset in [syntax_subset.md](syntax_subset.md)
+- 2.0 draft language subset in [syntax_subset.md](syntax_subset.md)
 - JSON diagnostic envelope `hayulo.diagnostics@0.1`
 - JSON test envelope `hayulo.test@0.1`
 - `hayulo.toml` project discovery
@@ -87,11 +87,11 @@ npm start
 - Hayulo is not production-ready.
 - Module imports and packages are not implemented.
 - Static checking is intentionally local and conservative.
-- REST API route bodies are parsed as structure; arbitrary route logic is not compiled.
+- REST API route bodies are declarative; arbitrary route logic is not compiled.
 - The generated API uses a local JSON file store, not real SQLite migrations.
 - `hayulo serve` and TypeScript generation are deferred.
 - Editor support is a minimal grammar preview, not a language server.
-- Language-level effects syntax is documented as direction, but only project API permissions are enforced today.
+- Route effects are enforced through project API permissions; function-level effects are still future work.
 
 ## Useful Feedback
 

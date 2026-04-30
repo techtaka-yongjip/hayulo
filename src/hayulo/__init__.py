@@ -1,3 +1,3 @@
-"""Hayulo stable-core language toolchain package."""
+"""Hayulo 2.0 draft language toolchain package."""
 
-__version__ = "1.0.0"
+__version__ = "2.0.0a0"

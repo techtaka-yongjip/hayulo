@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from .ast import (
-    Assign,
     Binary,
     Call,
     Expect,
@@ -13,16 +12,22 @@ from .ast import (
     FunctionParam,
     If,
     Index,
+    Let,
     ListLiteral,
     Literal,
     MapLiteral,
+    Match,
+    MatchCase,
     Program,
     RecordLiteral,
     Return,
+    Set,
     Stmt,
     TestDecl,
+    Try,
     Unary,
     Variable,
+    VariantLiteral,
 )
 from .diagnostics import Diagnostic, HayuloSyntaxError
 from .lexer import Token
@@ -133,6 +138,16 @@ class Parser:
         return body
 
     def _statement(self) -> Stmt:
+        if self._match("LET"):
+            token = self._consume("IDENT", "Expected variable name after 'let'.")
+            self._consume("EQUAL", "Expected '=' after variable name.")
+            return Let(token.value, self._expression(), line=token.line)
+
+        if self._match("SET"):
+            token = self._consume("IDENT", "Expected variable name after 'set'.")
+            self._consume("EQUAL", "Expected '=' after variable name.")
+            return Set(token.value, self._expression(), line=token.line)
+
         if self._match("RETURN"):
             line = self._previous().line
             return Return(self._expression(), line=line)
@@ -166,13 +181,64 @@ class Parser:
             return Expect(self._expression(), line=line)
 
         if self._check("IDENT") and self._check_next("EQUAL"):
-            token = self._advance()
-            name = token.value
-            self._consume("EQUAL", "Expected '=' after variable name.")
-            return Assign(name, self._expression(), line=token.line)
+            tok = self._peek()
+            raise HayuloSyntaxError(
+                Diagnostic(
+                    code="syntax.binding_requires_let_or_set",
+                    message="Hayulo 2.0 uses explicit let/set binding syntax.",
+                    file=self.filename,
+                    line=tok.line,
+                    column=tok.column,
+                    suggestions=["Use 'let name = value' for a new binding or 'set name = value' for reassignment."],
+                )
+            )
+
+        if self._match("MATCH"):
+            return self._match_stmt()
 
         expr = self._expression()
         return ExprStmt(expr)
+
+    def _match_stmt(self) -> Match:
+        line = self._previous().line
+        target = self._expression()
+        self._consume("LBRACE", "Expected '{' to start match block.")
+        cases: list[MatchCase] = []
+        seen: set[str] = set()
+        while not self._check("RBRACE") and not self._is_at_end():
+            variant = self._consume("IDENT", "Expected match case variant such as Some, None, Ok, or Err.")
+            if variant.value not in {"Some", "None", "Ok", "Err"}:
+                raise HayuloSyntaxError(
+                    Diagnostic(
+                        code="syntax.invalid_match_variant",
+                        message=f"Unsupported match variant {variant.value!r}.",
+                        file=self.filename,
+                        line=variant.line,
+                        column=variant.column,
+                        suggestions=["Use Some, None, Ok, or Err in this Hayulo 2.0 draft."],
+                    )
+                )
+            if variant.value in seen:
+                raise HayuloSyntaxError(
+                    Diagnostic(
+                        code="syntax.duplicate_match_case",
+                        message=f"Duplicate match case {variant.value!r}.",
+                        file=self.filename,
+                        line=variant.line,
+                        column=variant.column,
+                        suggestions=["Remove the duplicate match case."],
+                    )
+                )
+            seen.add(variant.value)
+            binding: str | None = None
+            if self._match("LPAREN"):
+                binding = self._consume("IDENT", "Expected binding name in match case.").value
+                self._consume("RPAREN", "Expected ')' after match binding.")
+            self._consume("FAT_ARROW", "Expected '=>' after match case.")
+            body = self._block()
+            cases.append(MatchCase(variant.value, binding, body, variant.line))
+        self._consume("RBRACE", "Expected '}' to close match block.")
+        return Match(target, cases, line=line)
 
     def _expression(self) -> Expr:
         return self._or()
@@ -226,6 +292,9 @@ class Parser:
         return expr
 
     def _unary(self) -> Expr:
+        if self._match("TRY"):
+            token = self._previous()
+            return Try(self._unary(), line=token.line)
         if self._match("MINUS", "NOT"):
             op = self._previous().value
             right = self._unary()
@@ -256,6 +325,21 @@ class Parser:
                         if not self._match("COMMA"):
                             break
                 self._consume("RPAREN", "Expected ')' after arguments.")
+                if expr.name in {"Some", "Ok", "Err"}:
+                    if len(args) != 1:
+                        tok = self._previous()
+                        raise HayuloSyntaxError(
+                            Diagnostic(
+                                code="syntax.invalid_variant_arity",
+                                message=f"{expr.name} expects exactly one value.",
+                                file=self.filename,
+                                line=tok.line,
+                                column=tok.column,
+                                suggestions=[f"Use {expr.name}(value)."],
+                            )
+                        )
+                    expr = VariantLiteral(expr.name, args[0], line=self._previous().line)
+                    continue
                 expr = Call(expr.name, args, line=self._previous().line)
                 continue
 
@@ -297,6 +381,8 @@ class Parser:
             return self._map_literal()
         if self._match("IDENT"):
             token = self._previous()
+            if token.value == "None":
+                return VariantLiteral("None", None, line=token.line)
             return Variable(token.value, line=token.line)
         if self._match("LPAREN"):
             expr = self._expression()

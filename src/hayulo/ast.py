@@ -39,7 +39,14 @@ class Stmt:
 
 
 @dataclass
-class Assign(Stmt):
+class Let(Stmt):
+    name: str
+    expr: "Expr"
+    line: int
+
+
+@dataclass
+class Set(Stmt):
     name: str
     expr: "Expr"
     line: int
@@ -74,6 +81,21 @@ class For(Stmt):
 @dataclass
 class Expect(Stmt):
     expr: "Expr"
+    line: int
+
+
+@dataclass
+class MatchCase:
+    variant: str
+    binding: str | None
+    body: list[Stmt]
+    line: int
+
+
+@dataclass
+class Match(Stmt):
+    target: "Expr"
+    cases: list[MatchCase]
     line: int
 
 
@@ -133,6 +155,19 @@ class FieldAccess(Expr):
 class RecordLiteral(Expr):
     type_name: str
     fields: list[tuple[str, Expr]]
+    line: int
+
+
+@dataclass
+class VariantLiteral(Expr):
+    variant: str
+    value: Expr | None
+    line: int
+
+
+@dataclass
+class Try(Expr):
+    expr: Expr
     line: int
 
 

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from .ast import (
-    Assign,
     Binary,
     Call,
     Expect,
@@ -16,16 +15,21 @@ from .ast import (
     FunctionDecl,
     If,
     Index,
+    Let,
     ListLiteral,
     Literal,
     MapLiteral,
+    Match,
     Program,
     RecordLiteral,
     Return,
+    Set,
     Stmt,
     TestDecl,
+    Try,
     Unary,
     Variable,
+    VariantLiteral,
 )
 from .diagnostics import Diagnostic, HayuloError
 
@@ -47,6 +51,10 @@ class StaticType:
             return f"List<{self.item.label()}>"
         if self.name == "Map" and self.key and self.value:
             return f"Map<{self.key.label()},{self.value.label()}>"
+        if self.name == "Option" and self.item:
+            return f"Option<{self.item.label()}>"
+        if self.name == "Result" and self.key and self.value:
+            return f"Result<{self.key.label()},{self.value.label()}>"
         return self.name
 
 
@@ -144,12 +152,32 @@ class StaticChecker:
         return returns
 
     def _check_stmt(self, stmt: Stmt, env: dict[str, StaticType], expected_return: StaticType | None) -> list[StaticType]:
-        if isinstance(stmt, Assign):
-            env[stmt.name] = self._infer_expr(stmt.expr, env)
+        if isinstance(stmt, Let):
+            if stmt.name in env:
+                self._error(
+                    "name.duplicate_definition",
+                    f"Name {stmt.name!r} is already bound in this scope.",
+                    stmt.line,
+                    details={"name": stmt.name},
+                    suggestions=["Use set to reassign an existing binding or choose a different name."],
+                )
+            env[stmt.name] = self._infer_expr(stmt.expr, env, expected_return)
+            return []
+
+        if isinstance(stmt, Set):
+            if stmt.name not in env:
+                self._error(
+                    "name.reassignment_before_binding",
+                    f"Cannot reassign {stmt.name!r} before it is bound.",
+                    stmt.line,
+                    details={"name": stmt.name},
+                    suggestions=["Use let to create a new binding before using set."],
+                )
+            env[stmt.name] = self._infer_expr(stmt.expr, env, expected_return)
             return []
 
         if isinstance(stmt, Return):
-            actual = self._infer_expr(stmt.expr, env)
+            actual = self._infer_expr(stmt.expr, env, expected_return)
             if expected_return and not compatible(expected_return, actual):
                 self._error(
                     "type.return_mismatch",
@@ -161,29 +189,84 @@ class StaticChecker:
             return [actual]
 
         if isinstance(stmt, ExprStmt):
-            self._infer_expr(stmt.expr, env)
+            self._infer_expr(stmt.expr, env, expected_return)
             return []
 
         if isinstance(stmt, If):
-            self._infer_expr(stmt.condition, env)
+            self._infer_expr(stmt.condition, env, expected_return)
             returns = self._check_block(stmt.then_body, dict(env), expected_return)
             returns.extend(self._check_block(stmt.else_body, dict(env), expected_return))
             return returns
 
         if isinstance(stmt, For):
-            iterable = self._infer_expr(stmt.iterable, env)
+            iterable = self._infer_expr(stmt.iterable, env, expected_return)
             loop_type = self._loop_type(iterable, stmt.line)
             loop_env = dict(env)
             loop_env[stmt.name] = loop_type
             return self._check_block(stmt.body, loop_env, expected_return)
 
         if isinstance(stmt, Expect):
-            self._infer_expr(stmt.expr, env)
+            self._infer_expr(stmt.expr, env, expected_return)
             return []
+
+        if isinstance(stmt, Match):
+            target = self._infer_expr(stmt.target, env, expected_return)
+            return self._check_match(stmt, target, env, expected_return)
 
         return []
 
-    def _infer_expr(self, expr: Expr, env: dict[str, StaticType]) -> StaticType:
+    def _check_match(self, stmt: Match, target: StaticType, env: dict[str, StaticType], expected_return: StaticType | None) -> list[StaticType]:
+        variants = {case.variant for case in stmt.cases}
+        if target.name == "Option":
+            required = {"Some", "None"}
+            if variants != required:
+                self._error(
+                    "match.non_exhaustive",
+                    "Match on Option must handle Some and None.",
+                    stmt.line,
+                    details={"required": sorted(required), "actual": sorted(variants)},
+                    suggestions=["Add both Some(value) and None cases."],
+                )
+        elif target.name == "Result":
+            required = {"Ok", "Err"}
+            if variants != required:
+                self._error(
+                    "match.non_exhaustive",
+                    "Match on Result must handle Ok and Err.",
+                    stmt.line,
+                    details={"required": sorted(required), "actual": sorted(variants)},
+                    suggestions=["Add both Ok(value) and Err(error) cases."],
+                )
+        elif target.name not in {"Unknown", "Any"}:
+            self._error(
+                "match.invalid_target",
+                f"Can only match Option or Result values, not {target.label()}.",
+                stmt.line,
+                details={"actual": target.label()},
+                suggestions=["Match on a value with type Option<T> or Result<T, E>."],
+            )
+
+        returns: list[StaticType] = []
+        for case in stmt.cases:
+            case_env = dict(env)
+            if case.binding:
+                if case.variant == "Some":
+                    case_env[case.binding] = target.item or UNKNOWN
+                elif case.variant == "Ok":
+                    case_env[case.binding] = target.key or UNKNOWN
+                elif case.variant == "Err":
+                    case_env[case.binding] = target.value or UNKNOWN
+                elif case.variant == "None":
+                    self._error(
+                        "match.invalid_binding",
+                        "None match cases do not bind a value.",
+                        case.line,
+                        suggestions=["Use `None => { ... }` without parentheses."],
+                    )
+            returns.extend(self._check_block(case.body, case_env, expected_return))
+        return returns
+
+    def _infer_expr(self, expr: Expr, env: dict[str, StaticType], expected_return: StaticType | None = None) -> StaticType:
         if isinstance(expr, Literal):
             if isinstance(expr.value, bool):
                 return BOOL
@@ -209,7 +292,7 @@ class StaticChecker:
             )
 
         if isinstance(expr, Unary):
-            value = self._infer_expr(expr.right, env)
+            value = self._infer_expr(expr.right, env, expected_return)
             if expr.op == "not":
                 return BOOL
             if expr.op == "-":
@@ -226,12 +309,12 @@ class StaticChecker:
 
         if isinstance(expr, Binary):
             if expr.op in {"and", "or"}:
-                self._infer_expr(expr.left, env)
-                self._infer_expr(expr.right, env)
+                self._infer_expr(expr.left, env, expected_return)
+                self._infer_expr(expr.right, env, expected_return)
                 return BOOL
 
-            left = self._infer_expr(expr.left, env)
-            right = self._infer_expr(expr.right, env)
+            left = self._infer_expr(expr.left, env, expected_return)
+            right = self._infer_expr(expr.right, env, expected_return)
             if expr.op in {"==", "!=", "<", "<=", ">", ">="}:
                 return BOOL
             if expr.op == "+" and left.name == "Text" and right.name == "Text":
@@ -255,7 +338,7 @@ class StaticChecker:
         if isinstance(expr, ListLiteral):
             if not expr.elements:
                 return StaticType("List", item=ANY)
-            return StaticType("List", item=common_type([self._infer_expr(element, env) for element in expr.elements]))
+            return StaticType("List", item=common_type([self._infer_expr(element, env, expected_return) for element in expr.elements]))
 
         if isinstance(expr, MapLiteral):
             if not expr.entries:
@@ -263,13 +346,13 @@ class StaticChecker:
             keys: list[StaticType] = []
             values: list[StaticType] = []
             for key_expr, value_expr in expr.entries:
-                keys.append(self._infer_expr(key_expr, env))
-                values.append(self._infer_expr(value_expr, env))
+                keys.append(self._infer_expr(key_expr, env, expected_return))
+                values.append(self._infer_expr(value_expr, env, expected_return))
             return StaticType("Map", key=common_type(keys), value=common_type(values))
 
         if isinstance(expr, Index):
-            target = self._infer_expr(expr.target, env)
-            index = self._infer_expr(expr.index, env)
+            target = self._infer_expr(expr.target, env, expected_return)
+            index = self._infer_expr(expr.index, env, expected_return)
             if target.name == "List":
                 if not compatible(INT, index):
                     self._error(
@@ -301,7 +384,7 @@ class StaticChecker:
             )
 
         if isinstance(expr, FieldAccess):
-            target = self._infer_expr(expr.target, env)
+            target = self._infer_expr(expr.target, env, expected_return)
             if target.fields is not None:
                 if expr.field not in target.fields:
                     self._error(
@@ -323,15 +406,45 @@ class StaticChecker:
             )
 
         if isinstance(expr, RecordLiteral):
-            return StaticType(expr.type_name, fields={name: self._infer_expr(value, env) for name, value in expr.fields})
+            return StaticType(expr.type_name, fields={name: self._infer_expr(value, env, expected_return) for name, value in expr.fields})
+
+        if isinstance(expr, VariantLiteral):
+            if expr.variant == "None":
+                return StaticType("Option", item=ANY)
+            value = self._infer_expr(expr.value, env, expected_return) if expr.value else UNKNOWN
+            if expr.variant == "Some":
+                return StaticType("Option", item=value)
+            if expr.variant == "Ok":
+                return StaticType("Result", key=value, value=ANY)
+            if expr.variant == "Err":
+                return StaticType("Result", key=ANY, value=value)
+            return UNKNOWN
+
+        if isinstance(expr, Try):
+            target = self._infer_expr(expr.expr, env, expected_return)
+            if target.name == "Option":
+                self._check_try_early_return(target, expected_return, expr.line)
+                return target.item or UNKNOWN
+            if target.name == "Result":
+                self._check_try_early_return(target, expected_return, expr.line)
+                return target.key or UNKNOWN
+            if target.name in {"Unknown", "Any"}:
+                return UNKNOWN
+            self._error(
+                "type.invalid_try_target",
+                f"try expects Option or Result, not {target.label()}.",
+                expr.line,
+                details={"actual": target.label()},
+                suggestions=["Use try with a function returning Option<T> or Result<T, E>."],
+            )
 
         if isinstance(expr, Call):
-            return self._infer_call(expr, env)
+            return self._infer_call(expr, env, expected_return)
 
         return UNKNOWN
 
-    def _infer_call(self, expr: Call, env: dict[str, StaticType]) -> StaticType:
-        args = [self._infer_expr(arg, env) for arg in expr.args]
+    def _infer_call(self, expr: Call, env: dict[str, StaticType], expected_return: StaticType | None = None) -> StaticType:
+        args = [self._infer_expr(arg, env, expected_return) for arg in expr.args]
 
         if expr.callee == "print":
             return NONE
@@ -373,6 +486,38 @@ class StaticChecker:
                     suggestions=["Pass a value matching the parameter type."],
                 )
         return info.return_type()
+
+    def _check_try_early_return(self, target: StaticType, expected_return: StaticType | None, line: int) -> None:
+        if expected_return is None or expected_return.name in {"Unknown", "Any"}:
+            return
+        if target.name == "Option":
+            if expected_return.name in {"Option", "Result"}:
+                return
+            self._error(
+                "type.try_return_mismatch",
+                f"try on Option may return None, but the function declares {expected_return.label()}.",
+                line,
+                details={"try_target": target.label(), "function_return": expected_return.label()},
+                suggestions=["Use try only inside a function returning Option<T> or Result<T, E>, or handle the Option with match."],
+            )
+        if target.name == "Result":
+            if expected_return.name == "Result":
+                if expected_return.value and target.value and not compatible(expected_return.value, target.value):
+                    self._error(
+                        "type.try_return_mismatch",
+                        f"try may return Err({target.value.label()}) but the function declares {expected_return.label()}.",
+                        line,
+                        details={"try_target": target.label(), "function_return": expected_return.label()},
+                        suggestions=["Use a compatible Result error type or handle the Result with match."],
+                    )
+                return
+            self._error(
+                "type.try_return_mismatch",
+                f"try on Result may return Err, but the function declares {expected_return.label()}.",
+                line,
+                details={"try_target": target.label(), "function_return": expected_return.label()},
+                suggestions=["Use try only inside a function returning Result<T, E>, or handle the Result with match."],
+            )
 
     def _check_arity(self, name: str, *, expected: int, actual: int, line: int) -> None:
         if expected != actual:
@@ -434,6 +579,14 @@ def type_from_annotation(type_name: str | None) -> StaticType:
         if len(parts) == 2:
             return StaticType("Map", key=type_from_annotation(parts[0]), value=type_from_annotation(parts[1]))
         return StaticType("Map", key=ANY, value=ANY)
+    if value.startswith("Option<") and value.endswith(">"):
+        return StaticType("Option", item=type_from_annotation(value[7:-1]))
+    if value.startswith("Result<") and value.endswith(">"):
+        inner = value[7:-1]
+        parts = split_top_level(inner, ",")
+        if len(parts) == 2:
+            return StaticType("Result", key=type_from_annotation(parts[0]), value=type_from_annotation(parts[1]))
+        return StaticType("Result", key=ANY, value=ANY)
     return StaticType(value)
 
 
@@ -473,6 +626,14 @@ def common_type(types: list[StaticType]) -> StaticType:
                 key=common_type([result.key or UNKNOWN, current.key or UNKNOWN]),
                 value=common_type([result.value or UNKNOWN, current.value or UNKNOWN]),
             )
+        elif result.name == "Option":
+            result = StaticType("Option", item=common_type([result.item or UNKNOWN, current.item or UNKNOWN]))
+        elif result.name == "Result":
+            result = StaticType(
+                "Result",
+                key=common_type([result.key or UNKNOWN, current.key or UNKNOWN]),
+                value=common_type([result.value or UNKNOWN, current.value or UNKNOWN]),
+            )
         elif result.fields is not None or current.fields is not None:
             if result.fields == current.fields:
                 result = StaticType(result.name, fields=result.fields)
@@ -491,6 +652,10 @@ def compatible(expected: StaticType, actual: StaticType) -> bool:
     if expected.name == "List" and expected.item and actual.item:
         return compatible(expected.item, actual.item)
     if expected.name == "Map" and expected.key and expected.value and actual.key and actual.value:
+        return compatible(expected.key, actual.key) and compatible(expected.value, actual.value)
+    if expected.name == "Option" and expected.item and actual.item:
+        return compatible(expected.item, actual.item)
+    if expected.name == "Result" and expected.key and expected.value and actual.key and actual.value:
         return compatible(expected.key, actual.key) and compatible(expected.value, actual.value)
     return True
 

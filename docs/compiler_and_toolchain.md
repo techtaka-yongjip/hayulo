@@ -26,7 +26,7 @@ The more fragmented the toolchain becomes, the harder it is for humans and LLMs 
 
 ## Command roadmap
 
-Implemented in the 1.0 stable core:
+Implemented in the current 2.0 draft toolchain:
 
 ```bash
 hayulo --version
@@ -103,7 +103,7 @@ Suggested shape:
       "suggestions": [
         {
           "kind": "convert_value",
-          "message": "Convert the Text to Int with Int.parse(value)? if the input is numeric.",
+          "message": "Convert the Text to Int with Int.parse(value) and handle the Result with try.",
           "safety": "requires_error_handling"
         }
       ],

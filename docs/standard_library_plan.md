@@ -108,7 +108,7 @@ type User = record {
   age: Int
 }
 
-user = json.decode<User>(text)?
+let user = try json.decode<User>(text)
 ```
 
 ### `std.files`
@@ -159,7 +159,7 @@ command wordcount {
   arg path: Path
 
   run {
-    text = files.read_text(path)?
+    let text = try files.read_text(path)
     print(text.split_whitespace().length)
   }
 }
@@ -316,7 +316,7 @@ Example:
 
 ```hayulo
 test "parse valid config" {
-  config = Config.parse("name = app")?
+  let config = try Config.parse("name = app")
   expect config.name == "app"
 }
 ```

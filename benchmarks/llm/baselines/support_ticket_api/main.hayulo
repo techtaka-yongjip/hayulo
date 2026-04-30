@@ -20,43 +20,48 @@ app SupportTicketBenchmarkApi {
   type Ticket = record {
     id: Id<Ticket>
     requester_email: Email
-    summary: Text min 3 max 200
-    status: Text min 1 max 40 = "open"
-    internal_notes: Text private = ""
+    summary: Text { min: 3, max: 200 }
+    status: Text { min: 1, max: 40 } = "open"
+    internal_notes: Text { private: true } = ""
     created_at: Time = now()
   }
 
   route GET "/tickets" -> List<Ticket> {
-    return db.Ticket.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Ticket
   }
 
   route GET "/tickets/{id}" -> Ticket {
-    return db.Ticket.get(id)?
+    effect api.read
+    effect storage.local
+    action get Ticket by id
   }
 
   route POST "/tickets" body input: CreateTicket -> Ticket {
-    return db.Ticket.insert(Ticket {
-      requester_email: input.requester_email
-      summary: input.summary
-    })
+    effect api.write
+    effect storage.local
+    action create Ticket from input
   }
 
   route PATCH "/tickets/{id}" body input: UpdateTicket -> Ticket {
-    ticket = db.Ticket.get(id)?
-    return db.Ticket.update(ticket with { status: input.status })
+    effect api.write
+    effect storage.local
+    action update Ticket by id from input
   }
 
   route DELETE "/tickets/{id}" -> Status {
-    db.Ticket.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete Ticket by id
   }
 }
 
 type CreateTicket = record {
   requester_email: Email
-  summary: Text min 3 max 200
+  summary: Text { min: 3, max: 200 }
 }
 
 type UpdateTicket = record {
-  status: Text min 1 max 40
+  status: Text { min: 1, max: 40 }
 }

@@ -47,8 +47,10 @@ files.write
 files.delete
 network.read
 network.write
-db.read
-db.write
+api.read
+api.write
+api.delete
+storage.local
 env.read
 clock.read
 email.send
@@ -88,7 +90,7 @@ deny = [
 ]
 ```
 
-Hayulo 0.8 checks generated REST API behavior against this allow/deny policy:
+Hayulo 2.0.0a0 checks declared REST API route effects against this allow/deny policy:
 
 - `api.read`: required by `GET` routes
 - `api.write`: required by `POST`, `PUT`, and `PATCH` routes
@@ -97,7 +99,7 @@ Hayulo 0.8 checks generated REST API behavior against this allow/deny policy:
 
 If required behavior is not listed in `allow`, `hayulo check` and `hayulo build` fail with `permission.missing`. If required behavior is listed in `deny`, they fail with `permission.denied`. The deny-list takes precedence so a project can explicitly block risky generated behavior even if a broad allow-list is present.
 
-Generated code should not be allowed to silently change permissions without review. Future versions may add `require_approval`, but 0.8 only implements `allow` and `deny`.
+Generated code should not be allowed to silently change permissions without review. Future versions may add `require_approval`, but the current prototype implements only `allow` and `deny`.
 
 ## Approval gates
 
@@ -114,14 +116,14 @@ Some actions should require explicit approval:
 Future Hayulo syntax might include:
 
 ```hayulo
-approval = ask approval user {
+let approval = ask approval user {
   action: "Send invoice email"
   preview: email.body
   effects: [email.send]
 }
 
 if approval.granted {
-  email.send(email)?
+  try email.send(email)
 }
 ```
 

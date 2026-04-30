@@ -88,7 +88,7 @@ Hayulo diagnostics should be designed for both humans and machines:
   "suggestions": [
     {
       "kind": "convert_value",
-      "message": "Use Int.parse(value)? if the text is numeric."
+      "message": "Use Int.parse(value) and handle the Result with try if the text is numeric."
     }
   ]
 }

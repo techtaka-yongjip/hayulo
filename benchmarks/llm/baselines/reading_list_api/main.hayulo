@@ -19,42 +19,46 @@ app ReadingListBenchmarkApi {
 
   type Bookmark = record {
     id: Id<Bookmark>
-    url: Text min 1 max 2048
-    title: Text min 1 max 200
+    url: Text { min: 1, max: 2048 }
+    title: Text { min: 1, max: 200 }
     tags: List<Text>
     read: Bool = false
     created_at: Time = now()
   }
 
   route GET "/bookmarks" -> List<Bookmark> {
-    return db.Bookmark.all(order: created_at desc)
+    effect api.read
+    effect storage.local
+    action list Bookmark
   }
 
   route GET "/bookmarks/{id}" -> Bookmark {
-    return db.Bookmark.get(id)?
+    effect api.read
+    effect storage.local
+    action get Bookmark by id
   }
 
   route POST "/bookmarks" body input: CreateBookmark -> Bookmark {
-    return db.Bookmark.insert(Bookmark {
-      url: input.url
-      title: input.title
-      tags: input.tags
-    })
+    effect api.write
+    effect storage.local
+    action create Bookmark from input
   }
 
   route PATCH "/bookmarks/{id}/done" -> Bookmark {
-    bookmark = db.Bookmark.get(id)?
-    return db.Bookmark.update(bookmark with { read: true })
+    effect api.write
+    effect storage.local
+    action update Bookmark by id set { read: true }
   }
 
   route DELETE "/bookmarks/{id}" -> Status {
-    db.Bookmark.delete(id)?
-    return no_content
+    effect api.delete
+    effect storage.local
+    action delete Bookmark by id
   }
 }
 
 type CreateBookmark = record {
-  url: Text min 1 max 2048
-  title: Text min 1 max 200
+  url: Text { min: 1, max: 2048 }
+  title: Text { min: 1, max: 200 }
   tags: List<Text>
 }
