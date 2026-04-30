@@ -11,6 +11,8 @@ GitHub Issues are the source of truth for Hayulo 1.0 execution.
 - Do not close an issue unless implementation, tests, and required docs updates are complete.
 - Every merged issue must pass `make test`, `make check`, and any relevant generated API smoke test.
 
+See [Development Loop](development_loop.md) for the repeatable build, test, issue, and repair workflow.
+
 ## Labels
 
 Queue state:

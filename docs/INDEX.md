@@ -15,6 +15,7 @@ This directory contains the public planning documents for Hayulo. Together they 
 - [Product Strategy](product_strategy.md): audience, wedge, positioning, demos, and adoption path.
 - [Detailed Roadmap](detailed_roadmap.md): milestone-by-milestone plan.
 - [Issue Queue](issue_queue.md): GitHub issue queue rules, labels, and issue shape.
+- [Development Loop](development_loop.md): repeatable build, test, issue, and repair workflow.
 - [Adoption and Ecosystem](adoption_and_ecosystem.md): how the ecosystem can grow.
 - [Launch Plan](launch_plan.md): practical open-source launch steps.
 - [Public Pitch](public_pitch.md): messaging, taglines, and launch copy.

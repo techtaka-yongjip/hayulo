@@ -1,7 +1,8 @@
 PYTHON ?= python3
+GH ?= gh
 ENV = PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src
 
-.PHONY: test check examples api-build api-smoke
+.PHONY: test check examples api-build api-smoke verify ci queue-status queue-active
 
 test:
 	$(ENV) $(PYTHON) -m unittest discover -s tests
@@ -19,3 +20,13 @@ api-build:
 
 api-smoke: api-build
 	cd examples/todo_api/generated && npm test
+
+verify: test check examples api-smoke
+
+ci: verify
+
+queue-status:
+	@$(GH) issue list --state open --label queue --limit 50 --json number,title,labels,milestone --jq 'sort_by(([.labels[].name | select(startswith("priority/"))][0]) // "priority/999")[] | "#\(.number) \(.title) | milestone=\(.milestone.title // "-") | labels=\([.labels[].name] | join(","))"'
+
+queue-active:
+	@$(GH) issue list --state open --label active --limit 10 --json number,title,labels,milestone --jq '.[] | "#\(.number) \(.title) | milestone=\(.milestone.title // "-") | labels=\([.labels[].name] | join(","))"'
