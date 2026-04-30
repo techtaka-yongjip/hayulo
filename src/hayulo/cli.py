@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -524,42 +525,73 @@ def summarize_totals(files: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def cmd_new(args: argparse.Namespace) -> int:
-    root = Path(args.path)
+    template = "script"
+    root = Path(args.kind_or_path)
+    if args.kind_or_path == "api":
+        template = "api"
+        if args.path is None:
+            return handle_error(
+                HayuloError(
+                    Diagnostic(
+                        code="project.missing_path",
+                        message="hayulo new api requires a project directory.",
+                        suggestions=["Use: hayulo new api my-api"],
+                    )
+                ),
+                args.json,
+            )
+        root = Path(args.path)
+    elif args.path is not None:
+        return handle_error(
+            HayuloError(
+                Diagnostic(
+                    code="project.invalid_template",
+                    message=f"Unknown project template {args.kind_or_path!r}.",
+                    suggestions=["Use hayulo new <project-dir> or hayulo new api <project-dir>."],
+                )
+            ),
+            args.json,
+        )
+
     name = args.name or root.name
     module = project_name_to_module(name)
 
     try:
-        files = create_project(root, name=name, module=module)
+        if template == "api":
+            files = create_api_project(root, name=name, module=module, app_name=project_name_to_app(name))
+        else:
+            files = create_project(root, name=name, module=module)
     except HayuloError as error:
         return handle_error(error, args.json)
 
+    next_commands = (
+        [f"cd {root}", "hayulo check", "hayulo build src/main.hayulo", "cd src/generated", "npm test", "npm start"]
+        if template == "api"
+        else [f"cd {root}", "hayulo check", "hayulo test", "hayulo run src/main.hayulo"]
+    )
     payload = {
         "status": "ok",
-        "kind": "project-new",
+        "kind": "project-new-api" if template == "api" else "project-new",
         "root": str(root),
+        "template": template,
         "project": {"name": name, "version": "0.1.0"},
         "files": [str(path) for path in files],
-        "next_commands": [f"cd {root}", "hayulo check", "hayulo test", "hayulo run src/main.hayulo"],
+        "next_commands": next_commands,
     }
     if args.json:
         emit_json(payload)
     else:
-        print(f"created Hayulo project: {root}")
+        print(f"created Hayulo {template} project: {root}")
         for path in files:
             print(f"  {path}")
         print("next:")
-        print(f"  cd {root}")
-        print("  hayulo check")
-        print("  hayulo test")
-        print("  hayulo run src/main.hayulo")
+        for command in next_commands:
+            print(f"  {command}")
     return 0
 
 
 def create_project(root: Path, *, name: str, module: str) -> list[Path]:
-    if root.exists() and root.is_file():
-        raise HayuloError(Diagnostic(code="project.exists", message=f"Project path is a file: {root}.", file=str(root), suggestions=["Choose a directory path."]))
-    if root.exists() and any(root.iterdir()):
-        raise HayuloError(Diagnostic(code="project.exists", message=f"Project directory is not empty: {root}.", file=str(root), suggestions=["Choose an empty directory or a new project path."]))
+    ensure_new_project_root(root)
 
     root.mkdir(parents=True, exist_ok=True)
     src = root / "src"
@@ -576,6 +608,38 @@ def create_project(root: Path, *, name: str, module: str) -> list[Path]:
     files[1].write_text(project_main_text(module), encoding="utf-8")
     files[2].write_text(project_test_text(module), encoding="utf-8")
     return files
+
+
+def create_api_project(root: Path, *, name: str, module: str, app_name: str) -> list[Path]:
+    ensure_new_project_root(root)
+
+    root.mkdir(parents=True, exist_ok=True)
+    src = root / "src"
+    src.mkdir(exist_ok=True)
+
+    files = [
+        root / "hayulo.toml",
+        src / "main.hayulo",
+    ]
+    files[0].write_text(project_config_text(name), encoding="utf-8")
+    files[1].write_text(project_api_main_text(module, name=name, app_name=app_name), encoding="utf-8")
+    return files
+
+
+def ensure_new_project_root(root: Path) -> None:
+    if root.exists() and root.is_file():
+        raise HayuloError(Diagnostic(code="project.exists", message=f"Project path is a file: {root}.", file=str(root), suggestions=["Choose a directory path."]))
+    if root.exists() and any(root.iterdir()):
+        raise HayuloError(Diagnostic(code="project.exists", message=f"Project directory is not empty: {root}.", file=str(root), suggestions=["Choose an empty directory or a new project path."]))
+
+
+def project_name_to_app(name: str) -> str:
+    parts = [part for part in re_split_name(name) if part]
+    return "".join(part[:1].upper() + part[1:] for part in parts) or "App"
+
+
+def re_split_name(name: str) -> list[str]:
+    return re.split(r"[^A-Za-z0-9]+", name.strip())
 
 
 def project_config_text(name: str) -> str:
@@ -600,6 +664,65 @@ fn greet(name: Text) -> Text {{
 
 fn main() {{
   print(greet("Hayulo"))
+}}
+"""
+
+
+def project_api_main_text(module: str, *, name: str, app_name: str) -> str:
+    return f"""module {module}.api
+
+intent {{
+  purpose: "Define a small todo REST API."
+  constraints: [
+    "Keep the records and routes explicit for generated OpenAPI.",
+    "Keep behavior simple enough for generated smoke tests."
+  ]
+}}
+
+app {app_name} {{
+  database sqlite "todo.db"
+
+  openapi {{
+    title: {json.dumps(name + " API")}
+    version: "0.1.0"
+  }}
+
+  type Todo = record {{
+    id: Id<Todo>
+    title: Text min 1 max 200
+    done: Bool = false
+    created_at: Time = now()
+  }}
+
+  route GET "/todos" -> List<Todo> {{
+    return db.Todo.all(order: created_at desc)
+  }}
+
+  route GET "/todos/{{id}}" -> Todo {{
+    return db.Todo.get(id)?
+  }}
+
+  route POST "/todos" body input: CreateTodo -> Todo {{
+    todo = Todo {{
+      title: input.title
+    }}
+
+    return db.Todo.insert(todo)
+  }}
+
+  route PATCH "/todos/{{id}}/done" -> Todo {{
+    todo = db.Todo.get(id)?
+    return db.Todo.update(todo with {{ done: true }})
+  }}
+
+  route DELETE "/todos/{{id}}" -> Status {{
+    db.Todo.delete(id)?
+    return no_content
+  }}
+}}
+
+type CreateTodo = record {{
+  title: Text min 1 max 200
 }}
 """
 
@@ -652,7 +775,8 @@ def build_parser() -> argparse.ArgumentParser:
     summarize.set_defaults(func=cmd_summarize)
 
     new = sub.add_parser("new", help="create a Hayulo project")
-    new.add_argument("path")
+    new.add_argument("kind_or_path", help="project directory, or 'api' for the REST API template")
+    new.add_argument("path", nargs="?", help="project directory when using a template")
     new.add_argument("--name", help="project name; defaults to the directory name")
     new.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     new.set_defaults(func=cmd_new)

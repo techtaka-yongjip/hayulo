@@ -490,3 +490,17 @@ README.md
 ```
 
 The MVP generator uses Node.js built-ins and a local JSON file store. This is a proof of the workflow, not the final backend architecture.
+
+## API project scaffold
+
+`hayulo new api <project-dir>` creates a Hayulo project with `hayulo.toml` and `src/main.hayulo` containing a small todo API. The generated project is expected to work with:
+
+```bash
+hayulo check
+hayulo build src/main.hayulo
+cd src/generated
+npm test
+npm start
+```
+
+`hayulo serve` is not part of the 0.7 API preview. The supported serve path is the generated Node server. TypeScript generation is also deferred until the API IR and OpenAPI output are stable enough to make generated types a public artifact.

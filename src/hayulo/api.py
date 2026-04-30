@@ -465,16 +465,111 @@ def build_openapi(spec: ApiSpec) -> dict[str, Any]:
             props[field.name] = schema
             if field.default is None and not field.type_name.startswith("Id<"):
                 required.append(field.name)
-        schemas[record.name] = {"type": "object", "properties": props, "required": required}
-    paths: dict[str, Any] = {}
+        schemas[record.name] = {"type": "object", "additionalProperties": False, "properties": props, "required": required}
+    schemas["ErrorResponse"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "error": {
+                "type": "object",
+                "additionalProperties": True,
+                "properties": {
+                    "code": {"type": "string"},
+                    "message": {"type": "string"},
+                    "details": {},
+                },
+                "required": ["code", "message"],
+            }
+        },
+        "required": ["error"],
+    }
+    paths: dict[str, Any] = {
+        "/health": {
+            "get": {
+                "operationId": "get_health",
+                "summary": "Check API health",
+                "responses": {
+                    "200": {
+                        "description": "API is healthy",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {"status": {"type": "string"}, "app": {"type": "string"}},
+                                    "required": ["status", "app"],
+                                }
+                            }
+                        },
+                    }
+                },
+            }
+        },
+        "/openapi.json": {
+            "get": {
+                "operationId": "get_openapi_json",
+                "summary": "Return this OpenAPI document",
+                "responses": {"200": {"description": "OpenAPI document"}},
+            }
+        },
+    }
     for route in spec.routes:
-        op: dict[str, Any] = {"operationId": operation_id(route), "responses": {"200": {"description": "OK", "content": {"application/json": {"schema": openapi_type(route.response_type)}}}}}
+        success_status = success_status_code(route)
+        op: dict[str, Any] = {
+            "operationId": operation_id(route),
+            "summary": route_summary(route, spec.records),
+            "parameters": path_parameters(route),
+            "responses": {
+                success_status: response_for_status(success_status, route.response_type),
+                "400": error_response("Bad request or validation failure"),
+                "404": error_response("Route or resource not found"),
+            },
+        }
         if route.method == "DELETE":
-            op["responses"] = {"204": {"description": "Deleted"}}
+            op["responses"] = {"204": {"description": "Deleted"}, "404": error_response("Resource not found")}
         if route.body_type:
             op["requestBody"] = {"required": True, "content": {"application/json": {"schema": openapi_type(route.body_type)}}}
         paths.setdefault(route.path, {})[route.method.lower()] = op
     return {"openapi": "3.1.0", "info": spec.openapi.to_dict(), "paths": paths, "components": {"schemas": schemas}}
+
+
+def success_status_code(route: ApiRoute) -> str:
+    if route.method == "POST":
+        return "201"
+    if route.method == "DELETE":
+        return "204"
+    return "200"
+
+
+def response_for_status(status: str, type_name: str) -> dict[str, Any]:
+    if status == "204":
+        return {"description": "No content"}
+    description = "Created" if status == "201" else "OK"
+    return {"description": description, "content": {"application/json": {"schema": openapi_type(type_name)}}}
+
+
+def error_response(description: str) -> dict[str, Any]:
+    return {"description": description, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ErrorResponse"}}}}
+
+
+def path_parameters(route: ApiRoute) -> list[dict[str, Any]]:
+    names = re.findall(r"\{([A-Za-z_]\w*)\}", route.path)
+    return [
+        {
+            "name": name,
+            "in": "path",
+            "required": True,
+            "schema": {"type": "integer"} if name == "id" else {"type": "string"},
+        }
+        for name in names
+    ]
+
+
+def route_summary(route: ApiRoute, records: dict[str, ApiRecord]) -> str:
+    action = infer_action(route).replace("_", " ")
+    record = infer_route_record(route, records)
+    if record:
+        return f"{action.title()} {record}"
+    return f"{action.title()} resource"
 
 
 def operation_id(route: ApiRoute) -> str:
@@ -565,6 +660,7 @@ def sample_value(field: ApiField) -> Any:
 
 def generated_smoke_test(spec: ApiSpec, routes: list[dict[str, Any]]) -> str:
     list_route = next((r for r in routes if r["action"] == "list"), None)
+    get_route = next((r for r in routes if r["action"] == "get"), None)
     create_route = next((r for r in routes if r["action"] == "create"), None)
     done_route = next((r for r in routes if r["action"] == "mark_done"), None)
     delete_route = next((r for r in routes if r["action"] == "delete"), None)
@@ -572,20 +668,47 @@ def generated_smoke_test(spec: ApiSpec, routes: list[dict[str, Any]]) -> str:
     if create_route and create_route.get("body", {}).get("type") in spec.records:
         for field in spec.records[create_route["body"]["type"]].fields:
             body[field.name] = sample_value(field)
-    tests = ["const health=await request('/health');", "assert.equal(health.status,200);"]
+    tests = [
+        "const health=await request('/health');",
+        "assert.equal(health.status,200);",
+        f"assert.equal(health.body.app,{json.dumps(spec.app_name)});",
+        "const openapi=await request('/openapi.json');",
+        "assert.equal(openapi.status,200);",
+        "assert.equal(openapi.body.openapi,'3.1.0');",
+    ]
     if list_route:
-        tests += [f"const listBefore=await request({json.dumps(list_route['path'])});", "assert.equal(listBefore.status,200);", "assert.ok(Array.isArray(listBefore.body));"]
+        tests += [
+            f"assert.ok(openapi.body.paths[{json.dumps(list_route['path'])}]);",
+            f"const listBefore=await request({json.dumps(list_route['path'])});",
+            "assert.equal(listBefore.status,200);",
+            "assert.ok(Array.isArray(listBefore.body));",
+        ]
     if create_route:
-        expected = next(iter(body.values()), "sample")
-        tests += [f"const created=await request({json.dumps(create_route['path'])},{{method:'POST',body:{json.dumps(body)}}});", "assert.equal(created.status,201);", f"assert.equal(created.body.title??Object.values(created.body)[1],{json.dumps(expected)});", "const createdId=created.body.id;"]
+        tests += [
+            f"const invalidCreate=await request({json.dumps(create_route['path'])},{{method:'POST',body:{{}}}});",
+            "assert.equal(invalidCreate.status,400);",
+            f"const created=await request({json.dumps(create_route['path'])},{{method:'POST',body:{json.dumps(body)}}});",
+            "assert.equal(created.status,201);",
+            "const createdId=created.body.id;",
+        ]
+        for key, value in body.items():
+            tests.append(f"assert.equal(created.body[{json.dumps(key)}],{json.dumps(value)});")
     else:
         tests += ["const createdId=1;"]
+    if get_route:
+        get_path = get_route['path'].replace('{id}', '${createdId}')
+        tests += [f"const fetched=await request(`{get_path}`);", "assert.equal(fetched.status,200);", "assert.equal(fetched.body.id,createdId);"]
+    if list_route and create_route:
+        tests += [f"const listAfter=await request({json.dumps(list_route['path'])});", "assert.equal(listAfter.status,200);", "assert.ok(listAfter.body.some(item=>item.id===createdId));"]
     if done_route:
         done_path = done_route['path'].replace('{id}', '${createdId}')
         tests += [f"const markedDone=await request(`{done_path}`,{{method:'PATCH'}});", "assert.equal(markedDone.status,200);", "assert.equal(markedDone.body.done,true);"]
     if delete_route:
         delete_path = delete_route['path'].replace('{id}', '${createdId}')
         tests += [f"const deleted=await request(`{delete_path}`,{{method:'DELETE'}});", "assert.equal(deleted.status,204);"]
+    if get_route and delete_route:
+        get_path = get_route['path'].replace('{id}', '${createdId}')
+        tests += [f"const fetchedAfterDelete=await request(`{get_path}`);", "assert.equal(fetchedAfterDelete.status,404);"]
     joined = "\n  ".join(tests)
     return """// Generated by Hayulo. Basic integration smoke test.
 import assert from 'node:assert/strict';

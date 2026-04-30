@@ -116,6 +116,18 @@ npm test
 npm start
 ```
 
+Create a new API project:
+
+```bash
+hayulo new api todo-service
+cd todo-service
+hayulo check
+hayulo build src/main.hayulo
+cd src/generated
+npm test
+npm start
+```
+
 Then use:
 
 ```bash
@@ -158,6 +170,7 @@ PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
 ```bash
 hayulo --version
 hayulo new <project-dir>
+hayulo new api <project-dir>
 hayulo run <file.hayulo>
 hayulo test <file.hayulo>
 hayulo test [project-dir]
@@ -262,7 +275,7 @@ Early useful contributions include:
 
 - improve API parser diagnostics
 - add source spans to API records and route clauses
-- generate TypeScript alongside `server.mjs`
+- prototype TypeScript generation alongside `server.mjs`
 - generate real SQLite migrations
 - add auth primitives
 - add `hayulo new api`

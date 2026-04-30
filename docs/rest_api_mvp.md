@@ -44,6 +44,30 @@ npm test
 npm start
 ```
 
+## New API project flow
+
+`hayulo new api <project-dir>` creates a small todo API project:
+
+```text
+todo-service/
+  hayulo.toml
+  src/main.hayulo
+```
+
+Run the generated project:
+
+```bash
+hayulo new api todo-service
+cd todo-service
+hayulo check
+hayulo build src/main.hayulo
+cd src/generated
+npm test
+npm start
+```
+
+This is the 0.7 app-building workflow. `hayulo serve` is deferred; the supported serve path is the generated Node server through `npm start` inside the generated directory. This keeps the Hayulo CLI focused on checking and generation while the runtime target is still moving.
+
 ## Why REST APIs first?
 
 REST APIs are a strong first target because they have a predictable shape:
@@ -97,16 +121,31 @@ The MVP intentionally supports a narrow subset:
 
 These limits are acceptable for the first proof. They keep the system small enough to test and improve.
 
+## OpenAPI and smoke tests
+
+Generated OpenAPI now includes:
+
+- `/health` and `/openapi.json`
+- success status codes that match runtime behavior, including `201` for create and `204` for delete
+- path parameters for routes such as `/todos/{id}`
+- request bodies for body-bearing routes
+- shared `ErrorResponse` schema for validation and not-found responses
+
+Generated smoke tests start the server on an ephemeral local port and check health, OpenAPI serving, list, create, validation failure, optional fetch-by-id, mark done, delete, and not-found behavior when the matching routes exist.
+
+## TypeScript decision
+
+TypeScript generation is explicitly deferred in 0.7. The current generator keeps `server.mjs` dependency-free so the API proof can run with only Node.js built-ins. TypeScript should be added after the API IR and OpenAPI output settle enough that generated types can be treated as a stable public artifact.
+
 ## Next improvements
 
-1. Generate TypeScript types and runtime validation.
+1. Generate TypeScript types after the API IR and OpenAPI shape are more stable.
 2. Generate real SQLite schema and migrations.
 3. Add auth primitives.
-4. Add `hayulo new api` project scaffolding.
+4. Add `hayulo serve` once generated-server lifecycle and watch behavior are defined.
 5. Add route action diagnostics when Hayulo cannot infer behavior.
 6. Add AI-focused suggested fixes in diagnostics.
-7. Add formatter support for API files.
-8. Add more examples: notes, inventory, appointments, invoices.
+7. Add more examples: notes, inventory, appointments, invoices.
 
 ## Definition of success
 

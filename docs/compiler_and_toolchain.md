@@ -31,6 +31,7 @@ Implemented in seed prototype:
 ```bash
 hayulo --version
 hayulo new my-app
+hayulo new api todo-service
 hayulo run examples/hello.hayulo
 hayulo test examples/hello.hayulo
 hayulo test --json
