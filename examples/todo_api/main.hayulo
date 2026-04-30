@@ -1,0 +1,51 @@
+module todo_api
+
+intent {
+  purpose: "Show Hayulo's first concrete target: AI-friendly REST API generation."
+  constraints: [
+    "Keep API structure obvious for coding agents.",
+    "Generate validation, OpenAPI metadata, and a runnable server from one source file."
+  ]
+}
+
+app TodoApi {
+  database sqlite "todo.db"
+
+  openapi {
+    title: "Todo API"
+    version: "0.1.0"
+  }
+
+  type Todo = record {
+    id: Id<Todo>
+    title: Text min 1 max 200
+    done: Bool = false
+    created_at: Time = now()
+  }
+
+  route GET "/todos" -> List<Todo> {
+    return db.Todo.all(order: created_at desc)
+  }
+
+  route POST "/todos" body input: CreateTodo -> Todo {
+    todo = Todo {
+      title: input.title
+    }
+
+    return db.Todo.insert(todo)
+  }
+
+  route PATCH "/todos/{id}/done" -> Todo {
+    todo = db.Todo.get(id)?
+    return db.Todo.update(todo with { done: true })
+  }
+
+  route DELETE "/todos/{id}" -> Status {
+    db.Todo.delete(id)?
+    return no_content
+  }
+}
+
+type CreateTodo = record {
+  title: Text min 1 max 200
+}

@@ -1,0 +1,21 @@
+module hello
+
+intent {
+  purpose: "Show the smallest useful Hayulo program."
+  constraints: [
+    "The greeting should be friendly.",
+    "The example should be easy for a new contributor to run."
+  ]
+}
+
+fn greet(name: Text) -> Text {
+  return "Hello, " + name
+}
+
+fn main() {
+  print(greet("human"))
+}
+
+test "greet returns a friendly message" {
+  expect greet("Mina") == "Hello, Mina"
+}

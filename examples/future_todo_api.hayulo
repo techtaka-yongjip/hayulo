@@ -1,0 +1,24 @@
+// This is a future design sketch, not supported by the current interpreter.
+
+module app.todos
+
+intent {
+  purpose: "A todo API for authenticated users."
+  constraints: [
+    "Users can only see their own todos.",
+    "Todo titles cannot be empty."
+  ]
+}
+
+type Todo = record {
+  id: Id<Todo>
+  owner_id: Id<User>
+  title: Text
+  done: Bool = false
+}
+
+service TodoApi {
+  route GET "/todos" auth user: User -> List<Todo> {
+    return db.todos.where(owner_id == user.id).all()
+  }
+}

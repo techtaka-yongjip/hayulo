@@ -1,0 +1,36 @@
+module math
+
+intent {
+  purpose: "Demonstrate arithmetic, branching, and tests."
+}
+
+fn add(a: Int, b: Int) -> Int {
+  return a + b
+}
+
+fn grade(score: Int) -> Text {
+  if score >= 90 {
+    return "A"
+  } else if score >= 80 {
+    return "B"
+  } else {
+    return "C"
+  }
+}
+
+fn main() {
+  print("2 + 3 = ")
+  print(add(2, 3))
+  print(grade(91))
+}
+
+test "add works" {
+  expect add(2, 3) == 5
+  expect add(-2, 7) == 5
+}
+
+test "grade works" {
+  expect grade(95) == "A"
+  expect grade(84) == "B"
+  expect grade(60) == "C"
+}
