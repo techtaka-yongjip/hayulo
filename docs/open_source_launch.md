@@ -57,12 +57,9 @@ Start with GitHub and a thoughtful post. Avoid over-marketing.
 ```bash
 git clone <repo>
 cd hayulo-lang
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-hayulo run examples/hello.hayulo
-hayulo test examples/hello.hayulo
-hayulo check examples/hello.hayulo --json
+cargo run -- run examples/hello.hayulo
+cargo run -- test examples/hello.hayulo
+cargo run -- check examples/hello.hayulo --json
 ```
 
 ## First issues to create

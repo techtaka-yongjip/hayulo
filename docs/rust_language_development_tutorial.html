@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rust and Language Development Tutorial with Hayulo</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --surface: #ffffff;
+      --ink: #20242a;
+      --muted: #5b6470;
+      --line: #d9d5cb;
+      --accent: #246b60;
+      --accent-2: #8b3d2e;
+      --accent-3: #3f5c99;
+      --code-bg: #1f252b;
+      --code-ink: #eef3f7;
+      --soft: #ece7dc;
+      --warn: #fff2d8;
+      --ok: #e4f2ec;
+      --radius: 8px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: var(--sans);
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent-3);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+      border-right: 1px solid var(--line);
+      background: #f0ece2;
+    }
+
+    aside h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    aside nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    aside a {
+      display: block;
+      padding: 7px 8px;
+      border-radius: 6px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    aside a:hover {
+      background: var(--soft);
+      text-decoration: none;
+    }
+
+    main {
+      width: min(1080px, 100%);
+      padding: 48px 52px 80px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 24px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      font-size: 13px;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 0;
+      font-size: clamp(42px, 7vw, 78px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 820px;
+      margin: 0;
+      font-size: 20px;
+      color: var(--muted);
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .mini {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .mini strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+
+    section {
+      padding: 36px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 28px 0 8px;
+      font-size: 21px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 880px;
+      margin: 0 0 14px;
+    }
+
+    ul, ol {
+      max-width: 880px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.95em;
+      background: rgba(31, 37, 43, 0.08);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+    }
+
+    pre {
+      max-width: 960px;
+      overflow: auto;
+      padding: 18px;
+      background: var(--code-bg);
+      color: var(--code-ink);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    pre code {
+      padding: 0;
+      color: inherit;
+      background: transparent;
+      border-radius: 0;
+    }
+
+    .note {
+      max-width: 960px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      background: var(--ok);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .warning {
+      max-width: 960px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent-2);
+      background: var(--warn);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      max-width: 980px;
+      margin: 20px 0;
+    }
+
+    .stage {
+      min-height: 118px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .stage:nth-child(2) { border-top-color: var(--accent-3); }
+    .stage:nth-child(3) { border-top-color: var(--accent-2); }
+    .stage:nth-child(4) { border-top-color: #6e6a32; }
+    .stage:nth-child(5) { border-top-color: #5f497a; }
+    .stage:nth-child(6) { border-top-color: #2c6b8d; }
+
+    .stage strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .stage span {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 980px;
+    }
+
+    .module {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .module h3 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .module p {
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    table {
+      width: min(980px, 100%);
+      border-collapse: collapse;
+      margin: 16px 0 22px;
+      background: var(--surface);
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #ebe6da;
+    }
+
+    details {
+      max-width: 960px;
+      margin: 12px 0;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .exercise {
+      max-width: 960px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .exercise + .exercise {
+      margin-top: 14px;
+    }
+
+    .exercise h3 {
+      margin-top: 0;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-right: 6px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .footer {
+      padding-top: 28px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 940px) {
+      .layout {
+        display: block;
+      }
+
+      aside {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      aside nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      main {
+        padding: 34px 22px 64px;
+      }
+
+      .quick-grid,
+      .pipeline,
+      .module-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h2>Course Map</h2>
+      <nav>
+        <a href="#start">Start Here</a>
+        <a href="#run">Run the Project</a>
+        <a href="#rust">Rust Basics</a>
+        <a href="#mental-model">Compiler Mental Model</a>
+        <a href="#tour">Hayulo Module Tour</a>
+        <a href="#lexer">Lexer</a>
+        <a href="#parser">Parser and AST</a>
+        <a href="#diagnostics">Diagnostics</a>
+        <a href="#checker">Static Checker</a>
+        <a href="#interpreter">Interpreter</a>
+        <a href="#api">API Generator</a>
+        <a href="#exercises">Exercises</a>
+        <a href="#roadmap">Learning Roadmap</a>
+      </nav>
+    </aside>
+
+    <main>
+      <header class="hero" id="start">
+        <div class="eyebrow">Hayulo Project Tutorial</div>
+        <h1>Learn Rust by Building a Programming Language Toolchain</h1>
+        <p>
+          This tutorial assumes you are new to Rust. It uses this repository as the textbook:
+          a small language with a lexer, parser, static checker, interpreter, formatter, project
+          system, JSON diagnostics, benchmark reader, and REST API generator.
+        </p>
+        <div class="quick-grid">
+          <div class="mini">
+            <strong>Audience</strong>
+            Rust beginner, language-tooling beginner, comfortable with command lines.
+          </div>
+          <div class="mini">
+            <strong>Goal</strong>
+            Understand how Rust code maps to compiler and interpreter concepts.
+          </div>
+          <div class="mini">
+            <strong>Project</strong>
+            Use <code>cargo run -- ...</code> and inspect the Rust modules under <code>src/</code>.
+          </div>
+        </div>
+      </header>
+
+      <section id="run">
+        <h2>1. Run the Project First</h2>
+        <p>
+          Before reading Rust, run the toolchain. A language project makes much more sense when
+          you can see its inputs and outputs.
+        </p>
+
+        <pre><code>rustup toolchain install stable
+cargo run -- --version
+cargo run -- run examples/hello.hayulo
+cargo run -- test examples/data_core.hayulo
+cargo run -- check examples/todo_api/main.hayulo --json
+cargo run -- build examples/todo_api/main.hayulo</code></pre>
+
+        <p>
+          The command format is important:
+          <code>cargo run --</code> means "run the Rust binary, and pass everything after
+          <code>--</code> to the binary itself."
+        </p>
+
+        <div class="note">
+          <strong>Practical habit:</strong> after each code change, run
+          <code>cargo check</code> first. It is faster than a full test run and catches most Rust
+          mistakes immediately.
+        </div>
+      </section>
+
+      <section id="rust">
+        <h2>2. Rust Basics You Need for This Codebase</h2>
+        <p>
+          You do not need to know all of Rust to work on Hayulo. Start with the concepts that show
+          up repeatedly in this repository.
+        </p>
+
+        <h3>Cargo is the project manager</h3>
+        <p>
+          <code>Cargo.toml</code> declares the package, binary, and dependencies:
+          <code>clap</code> for CLI parsing, <code>regex</code> for text patterns,
+          <code>serde</code> and <code>serde_json</code> for JSON, and <code>walkdir</code> for
+          recursive file discovery.
+        </p>
+
+        <pre><code>[package]
+name = "hayulo-lang"
+edition = "2024"
+
+[[bin]]
+name = "hayulo"
+path = "src/main.rs"</code></pre>
+
+        <h3>Modules are files</h3>
+        <p>
+          <code>src/lib.rs</code> exposes modules. For example, <code>pub mod lexer;</code> means
+          Rust should compile <code>src/lexer.rs</code> and make it visible to other modules.
+        </p>
+
+        <pre><code>pub mod lexer;
+pub mod parser;
+pub mod checker;
+pub mod interpreter;</code></pre>
+
+        <h3>Result is Rust's normal error path</h3>
+        <p>
+          Hayulo uses <code>HayuloResult&lt;T&gt;</code>, which is an alias for
+          <code>Result&lt;T, HayuloError&gt;</code>. A function returning this type either returns
+          <code>Ok(value)</code> or <code>Err(error)</code>.
+        </p>
+
+        <pre><code>pub type HayuloResult&lt;T&gt; = Result&lt;T, HayuloError&gt;;
+
+pub fn lex(source: &amp;str, filename: Option&lt;&amp;str&gt;) -&gt; HayuloResult&lt;Vec&lt;Token&gt;&gt; {
+    Lexer::new(source, filename).lex()
+}</code></pre>
+
+        <h3>The question mark operator propagates errors</h3>
+        <p>
+          In Rust, <code>?</code> means: if this is <code>Ok</code>, unwrap the value; if it is
+          <code>Err</code>, return that error from the current function.
+        </p>
+
+        <pre><code>let tokens = lex(source, Some(filename))?;
+let program = parse(tokens, Some(filename))?;
+check_program(&amp;program, Some(filename))?;</code></pre>
+
+        <h3>Enums model language syntax</h3>
+        <p>
+          A programming language has many possible statements and expressions. Rust enums are a
+          natural fit because each variant can carry different data.
+        </p>
+
+        <pre><code>pub enum Stmt {
+    Let { name: String, expr: Expr, line: usize },
+    Return { expr: Expr, line: usize },
+    If { condition: Expr, then_body: Vec&lt;Stmt&gt;, else_body: Vec&lt;Stmt&gt; },
+}</code></pre>
+
+        <h3>Borrowing is how Rust avoids accidental mutation</h3>
+        <p>
+          <code>&amp;T</code> means a read-only borrow. <code>&amp;mut T</code> means a mutable borrow.
+          Most compiler passes borrow the AST instead of copying it.
+        </p>
+
+        <pre><code>pub fn check_program(program: &amp;Program, filename: Option&lt;&amp;str&gt;) -&gt; HayuloResult&lt;()&gt; {
+    StaticChecker::new(program, filename).check()
+}</code></pre>
+
+        <details>
+          <summary>Rust words you will see often</summary>
+          <table>
+            <tr><th>Term</th><th>Meaning in this project</th></tr>
+            <tr><td><code>struct</code></td><td>A named bundle of fields, such as <code>Token</code> or <code>Diagnostic</code>.</td></tr>
+            <tr><td><code>enum</code></td><td>A value with several possible shapes, such as <code>Expr</code> or <code>Stmt</code>.</td></tr>
+            <tr><td><code>impl</code></td><td>Methods attached to a type, such as <code>Parser::parse</code>.</td></tr>
+            <tr><td><code>Option&lt;T&gt;</code></td><td>Either <code>Some(value)</code> or <code>None</code>.</td></tr>
+            <tr><td><code>Result&lt;T, E&gt;</code></td><td>Either <code>Ok(value)</code> or <code>Err(error)</code>.</td></tr>
+            <tr><td><code>Vec&lt;T&gt;</code></td><td>A growable list.</td></tr>
+            <tr><td><code>BTreeMap&lt;K, V&gt;</code></td><td>A sorted map, useful when stable JSON output matters.</td></tr>
+            <tr><td><code>derive</code></td><td>Ask Rust to generate common behavior such as <code>Clone</code>, <code>Debug</code>, or <code>Serialize</code>.</td></tr>
+          </table>
+        </details>
+      </section>
+
+      <section id="mental-model">
+        <h2>3. The Compiler and Toolchain Mental Model</h2>
+        <p>
+          Hayulo is not only an interpreter. It is a toolchain. The CLI chooses a workflow, then
+          routes source code through several passes.
+        </p>
+
+        <div class="pipeline" aria-label="Hayulo toolchain pipeline">
+          <div class="stage">
+            <strong>Source</strong>
+            <span><code>.hayulo</code> text written by a human or coding agent.</span>
+          </div>
+          <div class="stage">
+            <strong>Lexer</strong>
+            <span>Turns characters into tokens.</span>
+          </div>
+          <div class="stage">
+            <strong>Parser</strong>
+            <span>Turns tokens into an AST.</span>
+          </div>
+          <div class="stage">
+            <strong>Checker</strong>
+            <span>Finds name, type, arity, and return errors.</span>
+          </div>
+          <div class="stage">
+            <strong>Runtime</strong>
+            <span>Interprets scripts and runs tests.</span>
+          </div>
+          <div class="stage">
+            <strong>Generator</strong>
+            <span>Builds REST API files for API sources.</span>
+          </div>
+        </div>
+
+        <p>
+          A compiler pass should usually do one job. For example, the lexer should not decide
+          whether a function return type is correct. The checker should not parse raw strings.
+          Keeping those responsibilities separate makes the project easier to change.
+        </p>
+      </section>
+
+      <section id="tour">
+        <h2>4. Tour of the Rust Modules</h2>
+        <p>
+          Read the files in this order. This order follows the path from command line to language
+          execution.
+        </p>
+
+        <div class="module-grid">
+          <div class="module">
+            <h3><code>src/main.rs</code></h3>
+            <p>The small binary entrypoint. It calls the CLI and exits with the returned status code.</p>
+            <code>std::process::exit(...)</code>
+          </div>
+          <div class="module">
+            <h3><code>src/cli.rs</code></h3>
+            <p>Command definitions and command handlers for <code>check</code>, <code>run</code>, <code>test</code>, <code>build</code>, and more.</p>
+            <code>clap::{Parser, Subcommand}</code>
+          </div>
+          <div class="module">
+            <h3><code>src/diagnostics.rs</code></h3>
+            <p>Structured errors. This is what makes Hayulo useful for repair loops.</p>
+            <code>Diagnostic</code>, <code>HayuloError</code>
+          </div>
+          <div class="module">
+            <h3><code>src/lexer.rs</code></h3>
+            <p>Character scanner. Produces tokens such as <code>IDENT</code>, <code>STRING</code>, and <code>LBRACE</code>.</p>
+            <code>Token</code>, <code>Lexer::lex</code>
+          </div>
+          <div class="module">
+            <h3><code>src/parser.rs</code></h3>
+            <p>Recursive descent parser. Converts tokens into the AST in <code>src/ast.rs</code>.</p>
+            <code>Parser::statement</code>, <code>Parser::expression</code>
+          </div>
+          <div class="module">
+            <h3><code>src/ast.rs</code></h3>
+            <p>The language data model: programs, functions, statements, expressions, literals.</p>
+            <code>Program</code>, <code>Stmt</code>, <code>Expr</code>
+          </div>
+          <div class="module">
+            <h3><code>src/checker.rs</code></h3>
+            <p>Static checking pass. It catches many mistakes before runtime.</p>
+            <code>StaticType</code>, <code>check_program</code>
+          </div>
+          <div class="module">
+            <h3><code>src/interpreter.rs</code></h3>
+            <p>Script runtime. Evaluates expressions, runs functions, executes tests.</p>
+            <code>Value</code>, <code>Interpreter</code>
+          </div>
+          <div class="module">
+            <h3><code>src/api.rs</code></h3>
+            <p>API source parser, OpenAPI builder, and Node server generator.</p>
+            <code>ApiSpec</code>, <code>generate_api</code>
+          </div>
+          <div class="module">
+            <h3><code>src/project.rs</code></h3>
+            <p>Project discovery and <code>hayulo.toml</code> parsing.</p>
+            <code>ProjectConfig</code>
+          </div>
+        </div>
+      </section>
+
+      <section id="lexer">
+        <h2>5. Lexer: Turning Text into Tokens</h2>
+        <p>
+          The lexer reads characters and emits tokens. A token has a kind, value, line, and column.
+          The parser does not want to care about raw characters.
+        </p>
+
+        <pre><code>pub struct Token {
+    pub kind: String,
+    pub value: String,
+    pub line: usize,
+    pub column: usize,
+}</code></pre>
+
+        <p>
+          Example input:
+        </p>
+
+        <pre><code>fn main() {
+  print("Hello")
+}</code></pre>
+
+        <p>
+          Conceptually becomes:
+        </p>
+
+        <pre><code>FN IDENT("main") LPAREN RPAREN LBRACE IDENT("print") LPAREN STRING("Hello") RPAREN RBRACE EOF</code></pre>
+
+        <div class="warning">
+          <strong>Language design rule:</strong> good token locations matter. Diagnostics for
+          coding agents are only useful when they point at the right line and column.
+        </div>
+
+        <h3>How to add a keyword</h3>
+        <ol>
+          <li>Add the keyword to the keyword match in <code>src/lexer.rs</code>.</li>
+          <li>Decide where the parser should accept that token.</li>
+          <li>Add a diagnostic for the most common wrong usage.</li>
+          <li>Add a fixture or CLI test that exercises the keyword.</li>
+        </ol>
+      </section>
+
+      <section id="parser">
+        <h2>6. Parser and AST: Turning Tokens into Meaning</h2>
+        <p>
+          Hayulo uses a recursive descent parser. That means grammar rules are implemented as
+          Rust methods. For example, expression parsing is split into precedence levels:
+          <code>or</code>, <code>and</code>, equality, comparison, term, factor, unary, call, primary.
+        </p>
+
+        <pre><code>fn expression(&amp;mut self) -&gt; HayuloResult&lt;Expr&gt; {
+    self.or()
+}</code></pre>
+
+        <p>
+          The AST is the central data structure. Once the source becomes AST, the checker and
+          interpreter no longer need to know about punctuation.
+        </p>
+
+        <table>
+          <tr><th>Syntax</th><th>AST shape</th><th>Later consumer</th></tr>
+          <tr><td><code>let x = 1</code></td><td><code>Stmt::Let</code></td><td>Checker binds a name. Interpreter stores a value.</td></tr>
+          <tr><td><code>x + y</code></td><td><code>Expr::Binary</code></td><td>Checker verifies operand types. Interpreter computes.</td></tr>
+          <tr><td><code>Some(value)</code></td><td><code>Expr::VariantLiteral</code></td><td>Checker tracks Option. Interpreter creates runtime value.</td></tr>
+          <tr><td><code>match result { ... }</code></td><td><code>Stmt::Match</code></td><td>Checker enforces exhaustiveness. Interpreter selects a case.</td></tr>
+        </table>
+
+        <details>
+          <summary>Why the parser should not execute code</summary>
+          <p>
+            Parsing is about structure, not behavior. If the parser starts evaluating expressions,
+            it becomes harder to produce clear diagnostics, harder to test, and harder to support
+            tools like formatters and language servers.
+          </p>
+        </details>
+      </section>
+
+      <section id="diagnostics">
+        <h2>7. Diagnostics: The Product Surface for Coding Agents</h2>
+        <p>
+          Hayulo treats errors as structured data. The CLI can print prose for humans, or JSON for
+          repair loops. The same <code>Diagnostic</code> type supports both.
+        </p>
+
+        <pre><code>Diagnostic::new("file_not_found", "Hayulo source file not found.")
+    .file(Some(path))
+    .suggestion("Check the path and try again.")</code></pre>
+
+        <p>
+          A good diagnostic has four parts:
+        </p>
+
+        <ol>
+          <li><strong>Stable code:</strong> machine-readable, such as <code>syntax.postfix_try_removed</code>.</li>
+          <li><strong>Plain message:</strong> explains the problem in human language.</li>
+          <li><strong>Location:</strong> file, line, and column when possible.</li>
+          <li><strong>Suggestion:</strong> tells the user or agent what to try next.</li>
+        </ol>
+
+        <pre><code>{
+  "schema": "hayulo.diagnostics@0.1",
+  "status": "failed",
+  "diagnostics": [
+    {
+      "code": "syntax.binding_requires_let_or_set",
+      "severity": "error",
+      "message": "Hayulo 2.0 uses explicit let/set binding syntax."
+    }
+  ]
+}</code></pre>
+      </section>
+
+      <section id="checker">
+        <h2>8. Static Checker: Catch Mistakes Before Running</h2>
+        <p>
+          The checker walks the AST and infers simple static types. It tracks names in environments,
+          validates function arity, checks return types, and makes sure match statements handle
+          required variants.
+        </p>
+
+        <pre><code>struct StaticType {
+    name: String,
+    item: Option&lt;Box&lt;StaticType&gt;&gt;,
+    key: Option&lt;Box&lt;StaticType&gt;&gt;,
+    value: Option&lt;Box&lt;StaticType&gt;&gt;,
+    fields: Option&lt;BTreeMap&lt;String, StaticType&gt;&gt;,
+}</code></pre>
+
+        <p>
+          This is a classic compiler pass:
+        </p>
+
+        <ol>
+          <li>Collect function signatures.</li>
+          <li>Check function bodies.</li>
+          <li>Check tests.</li>
+          <li>Return the first structured error.</li>
+        </ol>
+
+        <p>
+          The checker is intentionally conservative. A small language is easier for agents to
+          generate and repair than a large language with many implicit rules.
+        </p>
+      </section>
+
+      <section id="interpreter">
+        <h2>9. Interpreter: Executing Hayulo Scripts</h2>
+        <p>
+          The interpreter has a runtime <code>Value</code> enum. Static types describe what should
+          happen; runtime values are what actually happen.
+        </p>
+
+        <pre><code>pub enum Value {
+    None,
+    Bool(bool),
+    Int(i64),
+    Float(f64),
+    Text(String),
+    List(Vec&lt;Value&gt;),
+    Record { type_name: String, fields: BTreeMap&lt;String, Value&gt; },
+}</code></pre>
+
+        <p>
+          Function calls create an environment. <code>let</code> stores values in the current
+          environment. <code>set</code> searches existing environments and updates a binding.
+        </p>
+
+        <table>
+          <tr><th>Runtime concept</th><th>Where it appears</th><th>Why it matters</th></tr>
+          <tr><td>Environment stack</td><td><code>env_stack</code></td><td>Function calls and match bindings need scopes.</td></tr>
+          <tr><td>Return control</td><td><code>Control::Return</code></td><td>A return must stop the current block immediately.</td></tr>
+          <tr><td>Built-ins</td><td><code>print</code>, <code>len</code></td><td>Small standard behavior without a full standard library.</td></tr>
+          <tr><td>Runtime errors</td><td><code>runtime_error</code></td><td>Errors stay structured instead of becoming crashes.</td></tr>
+        </table>
+      </section>
+
+      <section id="api">
+        <h2>10. API Generator: A Different Language Track</h2>
+        <p>
+          Hayulo has two tracks. Script files go through the lexer, parser, checker, and interpreter.
+          API-style files are parsed by <code>src/api.rs</code> into <code>ApiSpec</code>, then
+          validated and generated into Node.js files.
+        </p>
+
+        <pre><code>module todo_api
+
+app TodoApi {
+  type Todo = record {
+    id: Id&lt;Todo&gt;
+    title: Text { min: 1, max: 200 }
+  }
+
+  route GET "/todos" -&gt; List&lt;Todo&gt; {
+    effect api.read
+    effect storage.local
+    action list Todo
+  }
+}</code></pre>
+
+        <p>
+          The generator writes:
+        </p>
+
+        <ul>
+          <li><code>hayulo.ir.json</code>: intermediate representation for tools.</li>
+          <li><code>openapi.json</code>: OpenAPI 3.1 document.</li>
+          <li><code>server.mjs</code>: dependency-free Node server.</li>
+          <li><code>smoke_test.mjs</code>: generated integration test.</li>
+          <li><code>package.json</code> and <code>README.md</code>: runtime instructions.</li>
+        </ul>
+
+        <div class="note">
+          <strong>Design insight:</strong> API generation is easier because Hayulo restricts route
+          bodies to declarations like <code>effect</code> and <code>action</code>. Less freedom
+          means better diagnostics and more predictable generated code.
+        </div>
+      </section>
+
+      <section id="exercises">
+        <h2>11. Guided Exercises</h2>
+        <p>
+          These exercises are ordered from safe reading tasks to real language changes.
+        </p>
+
+        <div class="exercise">
+          <span class="tag">Beginner</span>
+          <h3>Exercise 1: Trace <code>hayulo run examples/hello.hayulo</code></h3>
+          <ol>
+            <li>Open <code>src/main.rs</code>.</li>
+            <li>Follow the call into <code>src/cli.rs</code>.</li>
+            <li>Find the <code>Run</code> command handler.</li>
+            <li>Trace how it loads, parses, checks, and interprets the file.</li>
+          </ol>
+          <pre><code>cargo run -- run examples/hello.hayulo</code></pre>
+        </div>
+
+        <div class="exercise">
+          <span class="tag">Beginner</span>
+          <h3>Exercise 2: Add a Better Diagnostic Suggestion</h3>
+          <p>
+            Find a diagnostic in <code>src/parser.rs</code> or <code>src/checker.rs</code>. Improve
+            the suggestion text without changing behavior.
+          </p>
+          <pre><code>cargo check
+cargo run -- check tests/fixtures/syntax_error.hayulo --json</code></pre>
+        </div>
+
+        <div class="exercise">
+          <span class="tag">Intermediate</span>
+          <h3>Exercise 3: Add a Built-in Function</h3>
+          <p>
+            Add <code>uppercase(text)</code>. You need to update both the checker and the
+            interpreter.
+          </p>
+          <ol>
+            <li>In <code>src/checker.rs</code>, teach <code>infer_call</code> that <code>uppercase</code> accepts one <code>Text</code> and returns <code>Text</code>.</li>
+            <li>In <code>src/interpreter.rs</code>, teach <code>call_function</code> to return an uppercase string.</li>
+            <li>Add an example or fixture that calls <code>uppercase("hayulo")</code>.</li>
+          </ol>
+        </div>
+
+        <div class="exercise">
+          <span class="tag">Intermediate</span>
+          <h3>Exercise 4: Add a New Operator</h3>
+          <p>
+            Add support for a simple exponent operator only if you first decide its token,
+            precedence, type rules, and runtime behavior.
+          </p>
+          <table>
+            <tr><th>Question</th><th>Example answer</th></tr>
+            <tr><td>Token</td><td><code>DOUBLE_STAR</code> for <code>**</code></td></tr>
+            <tr><td>Parser precedence</td><td>Between unary and factor, or inside factor.</td></tr>
+            <tr><td>Checker rule</td><td>Numbers only. Return <code>Float</code> or <code>Int</code>.</td></tr>
+            <tr><td>Runtime rule</td><td>Use Rust numeric operations carefully.</td></tr>
+          </table>
+        </div>
+
+        <div class="exercise">
+          <span class="tag">Advanced</span>
+          <h3>Exercise 5: Add a Small Syntax Feature</h3>
+          <p>
+            Add <code>while</code> loops. This touches the full language pipeline.
+          </p>
+          <ol>
+            <li>Lexer: add <code>while</code> as a keyword.</li>
+            <li>AST: add <code>Stmt::While</code>.</li>
+            <li>Parser: parse <code>while condition { ... }</code>.</li>
+            <li>Checker: require a valid condition expression and check the body.</li>
+            <li>Interpreter: execute until the condition is false.</li>
+            <li>Diagnostics: handle malformed syntax clearly.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="roadmap">
+        <h2>12. Learning Roadmap</h2>
+        <p>
+          Use this path if you want to become productive in both Rust and language development.
+        </p>
+
+        <table>
+          <tr><th>Week</th><th>Rust focus</th><th>Language-dev focus</th><th>Hayulo task</th></tr>
+          <tr><td>1</td><td>Functions, structs, enums, <code>Result</code></td><td>Compiler pipeline</td><td>Trace <code>run</code>, <code>check</code>, and <code>test</code>.</td></tr>
+          <tr><td>2</td><td>Borrowing, <code>Option</code>, collections</td><td>AST and parser</td><td>Add parser comments and diagnostics.</td></tr>
+          <tr><td>3</td><td>Pattern matching and error propagation</td><td>Static checking</td><td>Add a built-in function with type checks.</td></tr>
+          <tr><td>4</td><td>Serialization with <code>serde</code></td><td>Tooling outputs</td><td>Improve JSON summaries or benchmark output.</td></tr>
+          <tr><td>5</td><td>CLI and file IO</td><td>Project system</td><td>Add a project config validation rule.</td></tr>
+          <tr><td>6</td><td>Testing and refactoring</td><td>Language evolution</td><td>Add one small syntax feature end to end.</td></tr>
+        </table>
+
+        <div class="warning">
+          <strong>Engineering standard:</strong> language features are expensive. Do not add syntax
+          just because it is easy to parse. Add it only when it improves the user loop, diagnostics,
+          generated code, or repair reliability.
+        </div>
+      </section>
+
+      <section>
+        <h2>13. Daily Workflow</h2>
+        <p>
+          Keep this loop small. Rust gives fast feedback if you ask for it often.
+        </p>
+
+        <pre><code>cargo fmt
+cargo check
+cargo run -- check examples/hello.hayulo --json
+cargo run -- test examples/data_core.hayulo
+cargo run -- build examples/todo_api/main.hayulo
+cd examples/todo_api/generated &amp;&amp; npm test</code></pre>
+
+        <p>
+          Before a larger checkpoint:
+        </p>
+
+        <pre><code>make verify</code></pre>
+
+        <p class="footer">
+          This tutorial is intentionally project-specific. Read it with the Rust files open beside
+          it, and treat every section as a map to concrete code in this repository.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

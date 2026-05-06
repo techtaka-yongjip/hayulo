@@ -28,13 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: python -m pip install -e .
       - run: make test
       - run: make check
       - run: make release-check
@@ -47,8 +47,8 @@ If a CI environment cannot run Node.js, use:
 ```bash
 make test
 make check
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m hayulo format --check .
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m hayulo benchmark llm --json
+cargo run -- format --check .
+cargo run -- benchmark llm --json
 ```
 
 This skips generated REST API smoke tests but still validates the compiler, diagnostics, examples, project checks, and public-alpha docs tests.

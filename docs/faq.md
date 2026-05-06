@@ -64,9 +64,7 @@ Future tools can use intent blocks to guide LLM edits and detect drift.
 
 ## What is the current implementation written in?
 
-The seed prototype is written in Python for fast iteration.
-
-A future compiler core may be rewritten in Rust or another systems language after the language design is more stable.
+The current toolchain core is written in Rust. The older Python prototype remains in the repository as reference material while the Rust rewrite reaches full test parity.
 
 ## What should contributors work on first?
 

@@ -304,16 +304,14 @@ The examples should be part of the test suite.
 
 ## Implementation language
 
-The current prototype is in Python, which is appropriate for speed of iteration.
+The current toolchain core is in Rust. The older Python prototype is retained only as reference material during the rewrite.
 
 Future options:
 
-- keep Python for prototype and tooling
-- rewrite compiler core in Rust for performance
-- maintain Python reference implementation
+- keep the Rust CLI as the canonical implementation
+- move more behavior behind library APIs for editor and language-server integrations
+- retire the Python reference once Rust parity is fully covered by tests
 - generate parts of compiler from grammar
-
-A rewrite should not happen until the language design is more stable.
 
 ## Technical risks
 

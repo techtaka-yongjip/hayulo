@@ -19,16 +19,14 @@ repair the source from structured diagnostics
 From a checkout:
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
+cargo install --path .
 hayulo --version
 ```
 
 Without installation:
 
 ```bash
-PYTHONPATH=src python -m hayulo --version
+cargo run -- --version
 ```
 
 ## Try the Script Path

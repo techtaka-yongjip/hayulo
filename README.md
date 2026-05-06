@@ -6,7 +6,7 @@ The core idea is simple:
 
 > Humans express intent. Coding agents generate and repair code. Hayulo checks, builds, tests, and helps turn the result into useful software.
 
-Hayulo 2.0.0a0 is a breaking draft focused on reliable LLM generation and repair. It is not recommended for critical production systems yet, but the current CLI, syntax subset, project format, formatter, diagnostics, and generated REST API workflow are ready for repeatable experimentation. New testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Python-based toolchain with two tracks:
+Hayulo 2.0.0a0 is a breaking draft focused on reliable LLM generation and repair. It is not recommended for critical production systems yet, but the current CLI, syntax subset, project format, formatter, diagnostics, and generated REST API workflow are ready for repeatable experimentation. New testers should start with the [Public Alpha Guide](docs/public_alpha.md), which explains installation, examples, limits, and useful feedback. The current implementation is a Rust-based toolchain with two tracks:
 
 1. A tiny script interpreter for early language experiments.
 2. A new REST API MVP path that checks a `.hayulo` API source file and generates a runnable Node.js REST server.
@@ -121,8 +121,8 @@ type CreateTodo = record {
 Build it:
 
 ```bash
-PYTHONPATH=src python -m hayulo check examples/todo_api/main.hayulo --json
-PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
+cargo run -- check examples/todo_api/main.hayulo --json
+cargo run -- build examples/todo_api/main.hayulo
 cd examples/todo_api/generated
 npm test
 npm start
@@ -151,31 +151,30 @@ curl http://localhost:3000/todos
 ## Quick start
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-hayulo --version
-hayulo new my-app
+rustup toolchain install stable
+cargo run -- --version
+cargo run -- new my-app
 cd my-app
-hayulo check
-hayulo test
-hayulo run src/main.hayulo
+cargo run --manifest-path ../Cargo.toml -- check
+cargo run --manifest-path ../Cargo.toml -- test
+cargo run --manifest-path ../Cargo.toml -- run src/main.hayulo
 cd ..
-hayulo run examples/hello.hayulo
-hayulo test examples/hello.hayulo
-hayulo run examples/data_core.hayulo
-hayulo check examples/hello.hayulo --json
-hayulo check examples/todo_api/main.hayulo --json
-hayulo benchmark llm --json
-hayulo build examples/todo_api/main.hayulo
+cargo run -- run examples/hello.hayulo
+cargo run -- test examples/hello.hayulo
+cargo run -- run examples/data_core.hayulo
+cargo run -- check examples/hello.hayulo --json
+cargo run -- check examples/todo_api/main.hayulo --json
+cargo run -- benchmark llm --json
+cargo run -- build examples/todo_api/main.hayulo
 ```
 
-Without installation:
+After installing the binary:
 
 ```bash
-PYTHONPATH=src python -m hayulo run examples/hello.hayulo
-PYTHONPATH=src python -m hayulo test examples/hello.hayulo --json
-PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
+cargo install --path .
+hayulo run examples/hello.hayulo
+hayulo test examples/hello.hayulo --json
+hayulo build examples/todo_api/main.hayulo
 ```
 
 ## Commands
@@ -268,11 +267,12 @@ The first wedge is REST APIs because they have clear structure: records, routes,
 
 ```text
 hayulo-lang/
-  src/hayulo/                prototype interpreter, API builder, and CLI
+  src/*.rs                   Rust interpreter, API builder, and CLI
+  src/hayulo/                legacy Python prototype kept as reference during the rewrite
   examples/hello.hayulo      script example
   examples/todo_api/         REST API example
   benchmarks/llm/            LLM generation benchmark tasks and baselines
-  tests/                     Python tests for the prototype
+  tests/                     legacy prototype tests and fixtures
   docs/                      design and planning documents
   SPEC.md                    seed language specification
   ROADMAP.md                 high-level roadmap

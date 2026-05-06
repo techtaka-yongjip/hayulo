@@ -4,7 +4,7 @@ Use this checklist for Hayulo 1.0 and later stable-core releases.
 
 ## Local Requirements
 
-- Python 3.11 or newer
+- Rust stable toolchain
 - Node.js 20 or newer for generated API smoke tests
 - GitHub CLI when closing queue issues
 

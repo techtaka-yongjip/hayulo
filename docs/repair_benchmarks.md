@@ -15,7 +15,9 @@ Baseline captured: 2026-04-30
 Command:
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest tests.test_formatter_and_repair tests.test_permissions
+cargo run -- check tests/fixtures/syntax_error.hayulo --json
+cargo run -- build tests/fixtures/api_error.hayulo --json
+cargo run -- format --check tests/fixtures/formatted.hayulo
 ```
 
 Result:

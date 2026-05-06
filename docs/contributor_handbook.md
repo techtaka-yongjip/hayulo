@@ -37,24 +37,23 @@ High-value early contributions:
 ## Development setup
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-python -m unittest discover -s tests
+cargo test
+cargo run -- check --json
 ```
 
 Run examples:
 
 ```bash
-hayulo run examples/hello.hayulo
-hayulo test examples/hello.hayulo
-hayulo check examples/hello.hayulo --json
+cargo run -- run examples/hello.hayulo
+cargo run -- test examples/hello.hayulo
+cargo run -- check examples/hello.hayulo --json
 ```
 
-Without installing:
+After installing:
 
 ```bash
-PYTHONPATH=src python -m hayulo run examples/hello.hayulo
+cargo install --path .
+hayulo run examples/hello.hayulo
 ```
 
 ## Contribution principles

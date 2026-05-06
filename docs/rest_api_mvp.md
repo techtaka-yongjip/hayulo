@@ -37,8 +37,8 @@ The generated server uses Node.js built-ins and a local JSON file store. This ke
 ## Example command flow
 
 ```bash
-PYTHONPATH=src python -m hayulo check examples/todo_api/main.hayulo --json
-PYTHONPATH=src python -m hayulo build examples/todo_api/main.hayulo
+cargo run -- check examples/todo_api/main.hayulo --json
+cargo run -- build examples/todo_api/main.hayulo
 cd examples/todo_api/generated
 npm test
 npm start
